@@ -1,66 +1,22 @@
-## Foundry
+# Send Earn
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Send Earn is a permissionless, non-custodial way for users to deposit their USDC into a vault and earn yield on their USDC. Send Earn is a vault-on-a-vault solution powered by Morpho and Moonwell. Users deposit their USDC into a Send Earn USDC (seUSDC) vault. In turn, the vault deposits the vault's assets into a Moonwell USDC (mwUSDC) vault. Users can also withdraw their USDC from the vault at any time.
 
-Foundry consists of:
+Send Earn's pioneering approach is to reward users for referring others to use Send Earn.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+See [docs/send-earn-about.md](docs/send-earn-about.md) for more information.
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
+## Quick Start
 
 ```shell
-$ forge build
+git clone https://github.com/0xsend/send-earn-contracts.git
+cd send-earn-contracts
+forge install
+forge build
 ```
 
-### Test
+## Testing
 
 ```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+forge test
 ```
