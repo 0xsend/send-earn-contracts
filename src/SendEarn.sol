@@ -9,6 +9,7 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
+import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 
 /// @title SendEarn
 /// @author Send Squad
@@ -58,10 +59,9 @@ contract SendEarn is ERC4626, Ownable2Step {
         string memory symbol
     ) ERC4626(IERC20(asset)) ERC20(name, symbol) Ownable(owner) {
         MOONWELL_VAULT = IERC4626(moonwellVault);
-        DECIMALS_OFFSET = 0; // TODO: fix this
-        // DECIMALS_OFFSET = uint8(
-        //     uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals())
-        // );
+        DECIMALS_OFFSET = uint8(
+            UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals())
+        );
 
         // TODO: Initialize other state variables
 
