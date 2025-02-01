@@ -3,7 +3,14 @@ pragma solidity 0.8.21;
 
 import {ERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC20, IERC4626, ERC20, ERC4626, Math, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {
+    IERC20,
+    IERC4626,
+    ERC20,
+    ERC4626,
+    Math,
+    SafeERC20
+} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
@@ -21,7 +28,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     /* IMMUTABLES */
 
     /// @notice The Morpho vault contract
-    IERC4626 public immutable MORPHO_VAULT;
+    IERC4626 public immutable MORPHO;
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation
     uint8 public immutable DECIMALS_OFFSET;
@@ -53,22 +60,14 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
 
     /* CONSTRUCTOR */
 
-    constructor(
-        address owner,
-        address morphoVault,
-        address asset,
-        string memory _name,
-        string memory _symbol
-    )
+    constructor(address owner, address morphoVault, address asset, string memory _name, string memory _symbol)
         ERC4626(IERC20(asset))
         ERC20Permit(_name)
         ERC20(_name, _symbol)
         Ownable(owner)
     {
-        MORPHO_VAULT = IERC4626(morphoVault);
-        DECIMALS_OFFSET = uint8(
-            UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals())
-        );
+        MORPHO = IERC4626(morphoVault);
+        DECIMALS_OFFSET = uint8(UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals()));
 
         // TODO: Initialize other state variables
 
@@ -94,34 +93,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     }
 
     function totalAssets() public view override returns (uint256) {
-        // TODO: Implement based on Morpho vault shares
-    }
-
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 assets,
-        uint256 shares
-    ) internal override {
-        // TODO: Implement deposit logic including:
-        // 1. Transfer assets from caller
-        // 2. Deposit into Morpho
-        // 3. Calculate and track fees
-        // 4. Mint shares
-    }
-
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal override {
-        // TODO: Implement withdrawal logic including:
-        // 1. Burn shares
-        // 2. Withdraw from Morpho
-        // 3. Calculate and distribute fees
-        // 4. Transfer assets to receiver
+        require(false, "TODO: totalAssets");
     }
 
     /* ERC4626 (INTERNAL) */
@@ -129,5 +101,37 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     /// @inheritdoc ERC4626
     function _decimalsOffset() internal view override returns (uint8) {
         return DECIMALS_OFFSET;
+    }
+
+    /// @inheritdoc ERC4626
+    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view override returns (uint256) {
+        require(false, "TODO: _convertToShares");
+    }
+
+    /// @inheritdoc ERC4626
+    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view override returns (uint256) {
+        require(false, "TODO: _convertToAssets");
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Accepts assets from `msg.sender`, deposits them into Morpho, and mints shares to `receiver`.
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        // 1. Transfer assets from caller
+        super._deposit(caller, receiver, assets, shares);
+        // 2. Deposit into Morpho
+        MORPHO.deposit(assets, address(this));
+        // 3. Calculate and track fees
+        require(false, "TODO: track fees");
+    }
+
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        override
+    {
+        // TODO: Implement withdrawal logic including:
+        // 1. Burn shares
+        // 2. Withdraw from Morpho
+        // 3. Calculate and distribute fees
+        // 4. Transfer assets to receiver
     }
 }
