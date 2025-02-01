@@ -1,29 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
-import "metamorpho-test/helpers/IntegrationTest.sol";
-import {SendEarn} from "../src/SendEarn.sol";
+import "./helpers/SendEarn.t.sol";
+import {Events} from "../src/lib/Events.sol";
+contract ReferralsTest is SendEarnTest {
+    function testSetFeeReferrer(address referrer) public {
+        referrer = _boundAddressNotZero(referrer);
 
-contract ReferralsTest is IntegrationTest {
-    // Contracts
-    SendEarn public seVault;
+        vm.expectEmit(address(seVault));
+        emit Events.SetReferrer(SUPPLIER, referrer);
+        vm.prank(SUPPLIER);
+        seVault.setReferrer(referrer);
 
-    function setUp() public override {
-        super.setUp();
-        seVault = new SendEarn(
-            OWNER,
-            address(vault),
-            address(loanToken),
-            string.concat("Send Earn: ", vault.name()),
-            string.concat("se", vault.symbol())
-        );
-    }
-
-    function testReferral() public {
-        assertEq(seVault.referrers(address(this)), address(0));
-        seVault.setReferrer(address(this));
-        assertEq(seVault.referrers(address(this)), address(this));
-        seVault.setReferrer(address(0));
-        assertEq(seVault.referrers(address(this)), address(0));
+        assertEq(seVault.referrers(SUPPLIER), referrer, "referrer");
     }
 }

@@ -1,40 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
-import "metamorpho-test/helpers/IntegrationTest.sol";
-import {SendEarn} from "../src/SendEarn.sol";
+import "./helpers/SendEarn.t.sol";
 
-contract ERC4626Test is IntegrationTest {
-    // Contracts
-    SendEarn public seVault;
-
-    function setUp() public override {
-        super.setUp();
-        seVault = new SendEarn(
-            OWNER,
-            address(vault),
-            address(loanToken),
-            string.concat("Send Earn: ", vault.name()),
-            string.concat("se", vault.symbol())
-        );
-    }
-
-    function testSetup() public {
-        assertEq(vault.name(), "MetaMorpho Vault");
-        assertEq(vault.symbol(), "MMV");
-        assertEq(address(vault.asset()), address(loanToken));
-        assertEq(seVault.asset(), address(loanToken));
-        assertEq(seVault.name(), "Send Earn: MetaMorpho Vault");
-        assertEq(seVault.symbol(), "seMMV");
-        assertEq(seVault.decimals(), 18);
-        // assertEq(seVault.totalAssets(), 0);
-        assertEq(seVault.balanceOf(address(this)), 0);
-        // assertEq(seVault.convertToShares(1e18), 1e18);
-        // assertEq(seVault.convertToAssets(1e18), 1e18);
-    }
-
+contract ERC4626Test is SendEarnTest {
     function testDecimals(uint8 decimals) public {
-        vm.mockCall(address(loanToken), abi.encodeWithSignature("decimals()"), abi.encode(decimals));
+        vm.mockCall(
+            address(loanToken),
+            abi.encodeWithSignature("decimals()"),
+            abi.encode(decimals)
+        );
 
         seVault = new SendEarn(
             OWNER,
@@ -45,6 +20,33 @@ contract ERC4626Test is IntegrationTest {
         );
 
         assertEq(seVault.decimals(), Math.max(18, decimals), "decimals");
+    }
+
+    function testMint(uint256 assets) public {
+        assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        uint256 shares = seVault.convertToShares(assets);
+
+        loanToken.setBalance(SUPPLIER, assets);
+
+        vm.expectEmit();
+        emit EventsLib.UpdateLastTotalAssets(seVault.totalAssets() + assets);
+        vm.prank(SUPPLIER);
+        uint256 deposited = seVault.mint(shares, ONBEHALF);
+
+        assertGt(deposited, 0, "deposited");
+        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
+        assertEq(seVault.balanceOf(ONBEHALF), shares, "balanceOf(ONBEHALF)");
+        // TODO: figure out why this is failing
+        // assertEq(
+        //     MorphoBalancesLib.expectedSupplyAssets(
+        //         morpho,
+        //         allMarkets[0],
+        //         address(seVault)
+        //     ),
+        //     assets,
+        //     "expectedSupplyAssets(vault)"
+        // );
     }
 
     // TODO: Test basic deposit

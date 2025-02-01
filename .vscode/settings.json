@@ -8,5 +8,6 @@
     "morpho-blue/=lib/morpho-blue/src/",
     "metamorpho/=lib/metamorpho/src/",
     "metamorpho-test/=lib/metamorpho/test/forge/"
-  ]
+  ],
+  "solidity.monoRepoSupport": true
 }
