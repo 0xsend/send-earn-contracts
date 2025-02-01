@@ -31,8 +31,11 @@ contract SendEarn is ERC4626, Ownable2Step {
 
     /// @notice Fee configuration for the vault
     struct FeeConfig {
+        // Platform fee basis points
         uint256 platformFee; // TODO: Define max bounds
+        // Referral fee basis points
         uint256 referralFee; // TODO: Define max bounds
+        // Fee recipient
         address feeRecipient;
     }
 
