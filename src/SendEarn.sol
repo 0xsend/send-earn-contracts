@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
+import {ERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {ERC4626, IERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {IERC20, IERC4626, ERC20, ERC4626, Math, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
@@ -14,7 +13,7 @@ import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit USDC to earn yield through Morpho & Morpho
-contract SendEarn is ERC4626, Ownable2Step {
+contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -58,9 +57,14 @@ contract SendEarn is ERC4626, Ownable2Step {
         address owner,
         address morphoVault,
         address asset,
-        string memory name,
-        string memory symbol
-    ) ERC4626(IERC20(asset)) ERC20(name, symbol) Ownable(owner) {
+        string memory _name,
+        string memory _symbol
+    )
+        ERC4626(IERC20(asset))
+        ERC20Permit(_name)
+        ERC20(_name, _symbol)
+        Ownable(owner)
+    {
         MORPHO_VAULT = IERC4626(morphoVault);
         DECIMALS_OFFSET = uint8(
             UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals())
@@ -82,7 +86,12 @@ contract SendEarn is ERC4626, Ownable2Step {
     // TODO: Add yield tracking logic
     // TODO: Add referral fee distribution logic
 
-    /* ERC4626 OVERRIDES */
+    /* ERC4626 (PUBLIC) */
+
+    /// @inheritdoc IERC20Metadata
+    function decimals() public view override(ERC20, ERC4626) returns (uint8) {
+        return ERC4626.decimals();
+    }
 
     function totalAssets() public view override returns (uint256) {
         // TODO: Implement based on Morpho vault shares
@@ -113,5 +122,12 @@ contract SendEarn is ERC4626, Ownable2Step {
         // 2. Withdraw from Morpho
         // 3. Calculate and distribute fees
         // 4. Transfer assets to receiver
+    }
+
+    /* ERC4626 (INTERNAL) */
+
+    /// @inheritdoc ERC4626
+    function _decimalsOffset() internal view override returns (uint8) {
+        return DECIMALS_OFFSET;
     }
 }

@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
-import {Test} from "forge-std/Test.sol";
+import "metamorpho-test/helpers/IntegrationTest.sol";
 import {SendEarn} from "../src/SendEarn.sol";
-import {IERC20, ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {IERC4626, ERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
-import {IntegrationTest} from "metamorpho-test/helpers/IntegrationTest.sol";
 
-contract SendEarnTest is IntegrationTest {
+contract ERC4626Test is IntegrationTest {
     // Contracts
     SendEarn public seVault;
 
@@ -35,6 +32,25 @@ contract SendEarnTest is IntegrationTest {
         assertEq(seVault.convertToShares(1e18), 1e18);
         assertEq(seVault.convertToAssets(1e18), 1e18);
     }
+
+    function testDecimals(uint8 decimals) public {
+        vm.mockCall(
+            address(loanToken),
+            abi.encodeWithSignature("decimals()"),
+            abi.encode(decimals)
+        );
+
+        seVault = new SendEarn(
+            OWNER,
+            address(vault),
+            address(loanToken),
+            string.concat("Send Earn: ", vault.name()),
+            string.concat("se", vault.symbol())
+        );
+
+        assertEq(seVault.decimals(), Math.max(18, decimals), "decimals");
+    }
+
     // TODO: Test basic deposit
     // TODO: Test deposit with referral
     // TODO: Test basic withdrawal
