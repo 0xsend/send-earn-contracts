@@ -2,125 +2,49 @@
 pragma solidity 0.8.21;
 
 import {Test} from "forge-std/Test.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
-import {MockERC4626} from "./mocks/MockERC4626.sol";
 import {SendEarn} from "../src/SendEarn.sol";
 import {IERC20, ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 import {IERC4626, ERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {IntegrationTest} from "metamorpho-test/helpers/IntegrationTest.sol";
 
 contract SendEarnTest is IntegrationTest {
-    // Constants
-    uint256 constant INITIAL_BALANCE = 1000000e6; // 1M USDC
-    uint256 constant DEPOSIT_AMOUNT = 10000e6; // 10k USDC
-
     // Contracts
-    // SendEarn public vault;
-    MockERC20 public usdc;
-    MockERC4626 public moonwellVault;
-
-    // Users
-    address public admin = makeAddr("admin");
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
-    address public carol = makeAddr("carol");
+    SendEarn public seVault;
 
     function setUp() public override {
         super.setUp();
-        // Deploy mock USDC
-        usdc = new MockERC20("USD Coin", "USDC", 6);
-
-        // Deploy mock Moonwell vault
-        moonwellVault = new MockERC4626(
-            address(usdc),
-            "Moonwell USDC",
-            "mwUSDC"
+        seVault = new SendEarn(
+            OWNER,
+            address(vault),
+            address(loanToken),
+            string.concat("Send Earn: ", vault.name()),
+            string.concat("se", vault.symbol())
         );
-
-        // Deploy SendEarn
-        // vault = new SendEarn(
-        //     admin,
-        //     address(moonwellVault),
-        //     address(usdc),
-        //     "Send Earn USDC",
-        //     "seUSDC"
-        // );
-
-        // Setup initial balances
-        usdc.mint(alice, INITIAL_BALANCE);
-        usdc.mint(bob, INITIAL_BALANCE);
-        usdc.mint(carol, INITIAL_BALANCE);
-
-        vm.startPrank(alice);
-        usdc.approve(address(vault), type(uint256).max);
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        usdc.approve(address(vault), type(uint256).max);
-        vm.stopPrank();
-
-        vm.startPrank(carol);
-        usdc.approve(address(vault), type(uint256).max);
-        vm.stopPrank();
     }
 
-    function test_initialization() public {
+    function testSetup() public {
         assertEq(vault.name(), "MetaMorpho Vault");
         assertEq(vault.symbol(), "MMV");
-        // assertEq(address(vault.MOONWELL_VAULT()), address(moonwellVault));
         assertEq(address(vault.asset()), address(loanToken));
+        assertEq(seVault.asset(), address(loanToken));
+        assertEq(seVault.name(), "Send Earn: MetaMorpho Vault");
+        assertEq(seVault.symbol(), "seMMV");
+        assertEq(seVault.decimals(), 18);
+        assertEq(seVault.totalAssets(), 0);
+        assertEq(seVault.balanceOf(address(this)), 0);
+        assertEq(seVault.convertToShares(1e18), 1e18);
+        assertEq(seVault.convertToAssets(1e18), 1e18);
     }
-
-    function test_deposit() public {
-        vm.startPrank(alice);
-        // TODO: Test basic deposit
-        vm.stopPrank();
-    }
-
-    function test_depositWithReferral() public {
-        vm.startPrank(alice);
-        // TODO: Test deposit with referral
-        vm.stopPrank();
-    }
-
-    function test_withdraw() public {
-        // TODO: Test basic withdrawal
-    }
-
-    function test_accrueYield() public {
-        // TODO: Test yield accrual
-    }
-
-    function test_feeCollection() public {
-        // TODO: Test fee collection
-    }
-
-    function test_referralFeeDistribution() public {
-        // TODO: Test referral fee distribution
-    }
-
-    // Access Control Tests
-    function test_onlyOwner() public {
-        // TODO: Test owner-only functions
-    }
-
-    // Failure Cases
-    function testRevertWhenDepositZero() public {
-        // TODO: Test deposit of 0 assets
-    }
-
-    function testRevertWhenWithdrawMoreThanBalance() public {
-        // TODO: Test withdrawal exceeding balance
-    }
-
-    // Fuzz Tests
-    function testFuzz_deposit(uint256 amount) public {
-        // TODO: Implement deposit fuzz test
-    }
-
-    function testFuzz_withdraw(uint256 amount) public {
-        // TODO: Implement withdraw fuzz test
-    }
-
+    // TODO: Test basic deposit
+    // TODO: Test deposit with referral
+    // TODO: Test basic withdrawal
+    // TODO: Test yield accrual
+    // TODO: Test fee collection
+    // TODO: Test referral fee distribution
+    // TODO: Test owner-only functions
+    // TODO: Test deposit of 0 assets
+    // TODO: Test withdrawal exceeding balance
+    // TODO: Implement deposit fuzz test
+    // TODO: Implement withdraw fuzz test
     // TODO: Add invariant tests
 }

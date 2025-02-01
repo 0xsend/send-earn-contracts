@@ -13,7 +13,7 @@ import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 
 /// @title SendEarn
 /// @author Send Squad
-/// @notice ERC4626 vault allowing users to deposit USDC to earn yield through Moonwell & Morpho
+/// @notice ERC4626 vault allowing users to deposit USDC to earn yield through Morpho & Morpho
 contract SendEarn is ERC4626, Ownable2Step {
     using Math for uint256;
     using SafeERC20 for IERC20;
@@ -21,8 +21,8 @@ contract SendEarn is ERC4626, Ownable2Step {
 
     /* IMMUTABLES */
 
-    /// @notice The Moonwell USDC vault contract
-    IERC4626 public immutable MOONWELL_VAULT;
+    /// @notice The Morpho vault contract
+    IERC4626 public immutable MORPHO_VAULT;
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation
     uint8 public immutable DECIMALS_OFFSET;
@@ -54,18 +54,22 @@ contract SendEarn is ERC4626, Ownable2Step {
 
     /* CONSTRUCTOR */
 
-    constructor(address owner, address moonwellVault, address asset, string memory name, string memory symbol)
-        ERC4626(IERC20(asset))
-        ERC20(name, symbol)
-        Ownable(owner)
-    {
-        MOONWELL_VAULT = IERC4626(moonwellVault);
-        DECIMALS_OFFSET = uint8(UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals()));
+    constructor(
+        address owner,
+        address morphoVault,
+        address asset,
+        string memory name,
+        string memory symbol
+    ) ERC4626(IERC20(asset)) ERC20(name, symbol) Ownable(owner) {
+        MORPHO_VAULT = IERC4626(morphoVault);
+        DECIMALS_OFFSET = uint8(
+            UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals())
+        );
 
         // TODO: Initialize other state variables
 
-        // Approve Moonwell vault to spend our underlying asset
-        IERC20(asset).approve(moonwellVault, type(uint256).max);
+        // Approve Morpho vault to spend our underlying asset
+        IERC20(asset).approve(morphoVault, type(uint256).max);
     }
 
     /* EXTERNAL FUNCTIONS */
@@ -81,24 +85,32 @@ contract SendEarn is ERC4626, Ownable2Step {
     /* ERC4626 OVERRIDES */
 
     function totalAssets() public view override returns (uint256) {
-        // TODO: Implement based on Moonwell vault shares
+        // TODO: Implement based on Morpho vault shares
     }
 
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+    function _deposit(
+        address caller,
+        address receiver,
+        uint256 assets,
+        uint256 shares
+    ) internal override {
         // TODO: Implement deposit logic including:
         // 1. Transfer assets from caller
-        // 2. Deposit into Moonwell
+        // 2. Deposit into Morpho
         // 3. Calculate and track fees
         // 4. Mint shares
     }
 
-    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
-        internal
-        override
-    {
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal override {
         // TODO: Implement withdrawal logic including:
         // 1. Burn shares
-        // 2. Withdraw from Moonwell
+        // 2. Withdraw from Morpho
         // 3. Calculate and distribute fees
         // 4. Transfer assets to receiver
     }
