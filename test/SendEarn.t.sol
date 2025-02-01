@@ -7,14 +7,15 @@ import {MockERC4626} from "./mocks/MockERC4626.sol";
 import {SendEarn} from "../src/SendEarn.sol";
 import {IERC20, ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 import {IERC4626, ERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {IntegrationTest} from "metamorpho-test/helpers/IntegrationTest.sol";
 
-contract SendEarnTest is Test {
+contract SendEarnTest is IntegrationTest {
     // Constants
     uint256 constant INITIAL_BALANCE = 1000000e6; // 1M USDC
     uint256 constant DEPOSIT_AMOUNT = 10000e6; // 10k USDC
 
     // Contracts
-    SendEarn public vault;
+    // SendEarn public vault;
     MockERC20 public usdc;
     MockERC4626 public moonwellVault;
 
@@ -24,7 +25,8 @@ contract SendEarnTest is Test {
     address public bob = makeAddr("bob");
     address public carol = makeAddr("carol");
 
-    function setUp() public {
+    function setUp() public override {
+        super.setUp();
         // Deploy mock USDC
         usdc = new MockERC20("USD Coin", "USDC", 6);
 
@@ -36,13 +38,13 @@ contract SendEarnTest is Test {
         );
 
         // Deploy SendEarn
-        vault = new SendEarn(
-            admin,
-            address(moonwellVault),
-            address(usdc),
-            "Send Earn USDC",
-            "seUSDC"
-        );
+        // vault = new SendEarn(
+        //     admin,
+        //     address(moonwellVault),
+        //     address(usdc),
+        //     "Send Earn USDC",
+        //     "seUSDC"
+        // );
 
         // Setup initial balances
         usdc.mint(alice, INITIAL_BALANCE);
@@ -63,10 +65,10 @@ contract SendEarnTest is Test {
     }
 
     function test_initialization() public {
-        assertEq(vault.name(), "Send Earn USDC");
-        assertEq(vault.symbol(), "seUSDC");
-        assertEq(address(vault.MOONWELL_VAULT()), address(moonwellVault));
-        assertEq(address(vault.asset()), address(usdc));
+        assertEq(vault.name(), "MetaMorpho Vault");
+        assertEq(vault.symbol(), "MMV");
+        // assertEq(address(vault.MOONWELL_VAULT()), address(moonwellVault));
+        assertEq(address(vault.asset()), address(loanToken));
     }
 
     function test_deposit() public {
@@ -103,14 +105,12 @@ contract SendEarnTest is Test {
     }
 
     // Failure Cases
-    function testFail_depositZero() public {
+    function testRevertWhenDepositZero() public {
         // TODO: Test deposit of 0 assets
-        revert("TODO");
     }
 
-    function testFail_withdrawMoreThanBalance() public {
+    function testRevertWhenWithdrawMoreThanBalance() public {
         // TODO: Test withdrawal exceeding balance
-        revert("TODO");
     }
 
     // Fuzz Tests

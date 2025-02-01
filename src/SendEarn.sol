@@ -54,17 +54,13 @@ contract SendEarn is ERC4626, Ownable2Step {
 
     /* CONSTRUCTOR */
 
-    constructor(
-        address owner,
-        address moonwellVault,
-        address asset,
-        string memory name,
-        string memory symbol
-    ) ERC4626(IERC20(asset)) ERC20(name, symbol) Ownable(owner) {
+    constructor(address owner, address moonwellVault, address asset, string memory name, string memory symbol)
+        ERC4626(IERC20(asset))
+        ERC20(name, symbol)
+        Ownable(owner)
+    {
         MOONWELL_VAULT = IERC4626(moonwellVault);
-        DECIMALS_OFFSET = uint8(
-            UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals())
-        );
+        DECIMALS_OFFSET = uint8(UtilsLib.zeroFloorSub(uint256(18), IERC20Metadata(asset).decimals()));
 
         // TODO: Initialize other state variables
 
@@ -88,12 +84,7 @@ contract SendEarn is ERC4626, Ownable2Step {
         // TODO: Implement based on Moonwell vault shares
     }
 
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 assets,
-        uint256 shares
-    ) internal override {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         // TODO: Implement deposit logic including:
         // 1. Transfer assets from caller
         // 2. Deposit into Moonwell
@@ -101,13 +92,10 @@ contract SendEarn is ERC4626, Ownable2Step {
         // 4. Mint shares
     }
 
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal override {
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        override
+    {
         // TODO: Implement withdrawal logic including:
         // 1. Burn shares
         // 2. Withdraw from Moonwell

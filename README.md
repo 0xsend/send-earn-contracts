@@ -8,15 +8,19 @@ See [docs/send-earn-about.md](docs/send-earn-about.md) for more information.
 
 ## Quick Start
 
+- Install [Foundry](https://github.com/foundry-rs/foundry)
+- Install [bun](https://bun.sh/)
+
 ```shell
 git clone https://github.com/0xsend/send-earn-contracts.git
 cd send-earn-contracts
 forge install
-forge build
+bun install --yarn --frozen-lockfile
+bun run build
 ```
 
 ## Testing
 
 ```shell
-forge test
+bun run test
 ```

@@ -1,0 +1,21 @@
+{
+  "name": "@0xsend/send-earn-contracts",
+  "version": "0.0.1",
+  "description": "The contracts and artifacts for Send Earn.",
+  "main": "index.js",
+  "author": "send.it",
+  "license": "GPL-2.0-or-later",
+  "private": false,
+  "scripts": {
+    "build": "bun run build:blue && bun run build:forge",
+    "build:forge": "forge build",
+    "build:blue": "bun run --cwd lib/morpho-blue/ build:forge",
+    "test": "bun run test:forge",
+    "test:forge": "bun build:blue && FOUNDRY_PROFILE=test forge test",
+    "lint": "bun run lint:forge",
+    "lint:forge": "forge fmt --check",
+    "lint:fix": "bun run lint:forge:fix",
+    "lint:forge:fix": "forge fmt",
+    "clean": "forge clean"
+  }
+}
