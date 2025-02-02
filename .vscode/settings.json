@@ -5,9 +5,9 @@
   "solidity.remappings": [
     "forge-std/=lib/forge-std/src/",
     "openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/",
-    "morpho-blue/=lib/morpho-blue/src/",
     "metamorpho/=lib/metamorpho/src/",
-    "metamorpho-test/=lib/metamorpho/test/forge/"
+    "metamorpho-test/=lib/metamorpho/test/forge/",
+    "morpho-blue/=lib/metamorpho/lib/morpho-blue/src/"
   ],
   "solidity.monoRepoSupport": true
 }
