@@ -7,11 +7,11 @@ contract ReferralsTest is SendEarnTest {
     function testSetFeeReferrer(address referrer) public {
         referrer = _boundAddressNotZero(referrer);
 
-        vm.expectEmit(address(seVault));
+        vm.expectEmit(address(sevault));
         emit Events.SetReferrer(SUPPLIER, referrer);
         vm.prank(SUPPLIER);
-        seVault.setReferrer(referrer);
+        sevault.setReferrer(referrer);
 
-        assertEq(seVault.referrers(SUPPLIER), referrer, "referrer");
+        assertEq(sevault.referrers(SUPPLIER), referrer, "referrer");
     }
 }

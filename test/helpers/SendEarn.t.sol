@@ -6,7 +6,8 @@ import "metamorpho-test/helpers/IntegrationTest.sol";
 import {SendEarn} from "../../src/SendEarn.sol";
 
 contract SendEarnTest is IntegrationTest {
-    SendEarn internal seVault;
+    /// @dev The Send Earn Vault under test
+    SendEarn internal sevault;
 
     address internal SEND_OWNER = makeAddr("SendOwner");
     address internal SEND_FEE_RECIPIENT = makeAddr("SendFeeRecipient");
@@ -14,7 +15,7 @@ contract SendEarnTest is IntegrationTest {
 
     function setUp() public virtual override {
         super.setUp();
-        seVault = new SendEarn(
+        sevault = new SendEarn(
             SEND_OWNER,
             address(vault),
             address(loanToken),
@@ -23,32 +24,32 @@ contract SendEarnTest is IntegrationTest {
         );
 
         vm.startPrank(SEND_OWNER);
-        seVault.setFeeRecipient(SEND_FEE_RECIPIENT);
+        sevault.setFeeRecipient(SEND_FEE_RECIPIENT);
         // TODO: add skim recipient
-        // seVault.setSkimRecipient(SEND_SKIM_RECIPIENT);
+        // sevault.setSkimRecipient(SEND_SKIM_RECIPIENT);
         vm.stopPrank();
 
-        loanToken.approve(address(seVault), type(uint256).max);
-        collateralToken.approve(address(seVault), type(uint256).max);
+        loanToken.approve(address(sevault), type(uint256).max);
+        collateralToken.approve(address(sevault), type(uint256).max);
 
         vm.startPrank(SUPPLIER);
-        loanToken.approve(address(seVault), type(uint256).max);
-        collateralToken.approve(address(seVault), type(uint256).max);
+        loanToken.approve(address(sevault), type(uint256).max);
+        collateralToken.approve(address(sevault), type(uint256).max);
         vm.stopPrank();
 
         vm.startPrank(ONBEHALF);
-        loanToken.approve(address(seVault), type(uint256).max);
-        collateralToken.approve(address(seVault), type(uint256).max);
+        loanToken.approve(address(sevault), type(uint256).max);
+        collateralToken.approve(address(sevault), type(uint256).max);
         vm.stopPrank();
     }
 
-    function _setSendFee(uint256 newFee) internal {
-        uint256 fee = seVault.fee();
+    function _setSendEarnFee(uint256 newFee) internal {
+        uint256 fee = sevault.fee();
         if (newFee == fee) return;
 
         vm.prank(SEND_OWNER);
-        seVault.setFee(newFee);
+        sevault.setFee(newFee);
 
-        assertEq(seVault.fee(), newFee, "_setSendFee");
+        assertEq(sevault.fee(), newFee, "_setSendEarnFee");
     }
 }

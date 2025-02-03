@@ -37,7 +37,7 @@ contract FeesTest is SendEarnTest {
             vm.stopPrank();
         }
 
-        _setSendFee(SEND_FEE);
+        _setSendEarnFee(SEND_FEE);
     }
 
     // TODO: fix tests
@@ -45,30 +45,30 @@ contract FeesTest is SendEarnTest {
     // TODO: add tests for referrals
     function testSetFee(uint256 fee) public {
         fee = bound(fee, 0, ConstantsLib.MAX_FEE);
-        vm.assume(fee != seVault.fee());
-        vm.expectEmit(address(seVault));
+        vm.assume(fee != sevault.fee());
+        vm.expectEmit(address(sevault));
         emit EventsLib.SetFee(SEND_OWNER, fee);
         vm.prank(SEND_OWNER);
-        seVault.setFee(fee);
-        assertEq(seVault.fee(), fee, "fee");
+        sevault.setFee(fee);
+        assertEq(sevault.fee(), fee, "fee");
     }
     function testSetFeeRecipient(address feeRecipient) public {
         feeRecipient = _boundAddressNotZero(feeRecipient);
-        vm.assume(feeRecipient != seVault.feeRecipient());
-        vm.expectEmit(address(seVault));
+        vm.assume(feeRecipient != sevault.feeRecipient());
+        vm.expectEmit(address(sevault));
         emit Events.SetFeeRecipient(feeRecipient);
         vm.prank(SEND_OWNER);
-        seVault.setFeeRecipient(feeRecipient);
-        assertEq(seVault.feeRecipient(), feeRecipient, "feeRecipient");
+        sevault.setFeeRecipient(feeRecipient);
+        assertEq(sevault.feeRecipient(), feeRecipient, "feeRecipient");
     }
     function testSetFeeReferral(uint256 feeReferral) public {
         feeReferral = bound(feeReferral, 0, ConstantsLib.MAX_FEE);
-        vm.assume(feeReferral != seVault.feeReferral());
-        vm.expectEmit(address(seVault));
+        vm.assume(feeReferral != sevault.feeReferral());
+        vm.expectEmit(address(sevault));
         emit Events.SetFeeReferral(SEND_OWNER, feeReferral);
         vm.prank(SEND_OWNER);
-        seVault.setFeeReferral(feeReferral);
-        uint256 newFeeReferral = uint256(seVault.feeReferral());
+        sevault.setFeeReferral(feeReferral);
+        uint256 newFeeReferral = uint256(sevault.feeReferral());
         assertEq(newFeeReferral, feeReferral, "feeReferral");
     }
 }

@@ -21,7 +21,7 @@ contract ERC4626Test is SendEarnTest {
             abi.encode(decimals)
         );
 
-        seVault = new SendEarn(
+        sevault = new SendEarn(
             SEND_OWNER,
             address(vault),
             address(loanToken),
@@ -29,24 +29,29 @@ contract ERC4626Test is SendEarnTest {
             string.concat("se", vault.symbol())
         );
 
-        assertEq(seVault.decimals(), Math.max(18, decimals), "decimals");
+        assertEq(sevault.decimals(), Math.max(18, decimals), "decimals");
     }
 
     function testMint(uint256 assets) public {
         assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
 
-        uint256 shares = seVault.convertToShares(assets);
+        uint256 shares = sevault.convertToShares(assets);
 
         loanToken.setBalance(SUPPLIER, assets);
 
         vm.expectEmit();
-        emit EventsLib.UpdateLastTotalAssets(seVault.totalAssets() + assets);
+        emit EventsLib.UpdateLastTotalAssets(sevault.totalAssets() + assets);
         vm.prank(SUPPLIER);
-        uint256 deposited = seVault.mint(shares, ONBEHALF);
+        uint256 deposited = sevault.mint(shares, ONBEHALF);
 
         assertGt(deposited, 0, "deposited");
-        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
-        assertEq(seVault.balanceOf(ONBEHALF), shares, "balanceOf(ONBEHALF)");
+        assertEq(
+            loanToken.balanceOf(address(sevault)),
+            0,
+            "balanceOf(sevault)"
+        );
+        assertEq(loanToken.balanceOf(address(vault)), 0, "balanceOf(vault)");
+        assertEq(sevault.balanceOf(ONBEHALF), shares, "balanceOf(ONBEHALF)");
         assertEq(
             morpho.expectedSupplyAssets(allMarkets[0], address(vault)),
             assets,
@@ -57,18 +62,28 @@ contract ERC4626Test is SendEarnTest {
     function testDeposit(uint256 assets) public {
         assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
 
-        uint256 shares = seVault.convertToShares(assets);
+        uint256 shares = sevault.convertToShares(assets);
 
         loanToken.setBalance(SUPPLIER, assets);
 
         vm.expectEmit();
-        emit EventsLib.UpdateLastTotalAssets(seVault.totalAssets() + assets);
+        emit EventsLib.UpdateLastTotalAssets(sevault.totalAssets() + assets);
         vm.prank(SUPPLIER);
-        uint256 deposited = seVault.deposit(assets, ONBEHALF);
+        uint256 deposited = sevault.deposit(assets, ONBEHALF);
 
         assertGt(deposited, 0, "deposited");
-        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
-        assertEq(seVault.balanceOf(ONBEHALF), shares, "balanceOf(ONBEHALF)");
+        assertEq(
+            loanToken.balanceOf(address(sevault)),
+            0,
+            "balanceOf(sevault)"
+        );
+        assertEq(loanToken.balanceOf(address(vault)), 0, "balanceOf(vault)");
+        assertEq(sevault.balanceOf(ONBEHALF), shares, "balanceOf(ONBEHALF)");
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            shares,
+            "balanceOf(sevault)"
+        );
         assertEq(
             morpho.expectedSupplyAssets(allMarkets[0], address(vault)),
             assets,
@@ -82,20 +97,30 @@ contract ERC4626Test is SendEarnTest {
         loanToken.setBalance(SUPPLIER, deposited);
 
         vm.prank(SUPPLIER);
-        uint256 shares = seVault.deposit(deposited, ONBEHALF);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
 
         redeemed = bound(redeemed, 0, shares);
 
         vm.expectEmit();
         emit EventsLib.UpdateLastTotalAssets(
-            seVault.totalAssets() - seVault.convertToAssets(redeemed)
+            sevault.totalAssets() - sevault.convertToAssets(redeemed)
         );
         vm.prank(ONBEHALF);
-        seVault.redeem(redeemed, RECEIVER, ONBEHALF);
+        sevault.redeem(redeemed, RECEIVER, ONBEHALF);
 
-        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
         assertEq(
-            seVault.balanceOf(ONBEHALF),
+            loanToken.balanceOf(address(sevault)),
+            0,
+            "balanceOf(sevault)"
+        );
+        assertEq(loanToken.balanceOf(address(vault)), 0, "balanceOf(vault)");
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            shares - redeemed,
+            "vault.balanceOf(address(sevault))"
+        );
+        assertEq(
+            sevault.balanceOf(ONBEHALF),
             shares - redeemed,
             "balanceOf(ONBEHALF)"
         );
@@ -108,16 +133,26 @@ contract ERC4626Test is SendEarnTest {
         loanToken.setBalance(SUPPLIER, deposited);
 
         vm.prank(SUPPLIER);
-        uint256 shares = seVault.deposit(deposited, ONBEHALF);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
 
         vm.expectEmit();
-        emit EventsLib.UpdateLastTotalAssets(seVault.totalAssets() - withdrawn);
+        emit EventsLib.UpdateLastTotalAssets(sevault.totalAssets() - withdrawn);
         vm.prank(ONBEHALF);
-        uint256 redeemed = seVault.withdraw(withdrawn, RECEIVER, ONBEHALF);
+        uint256 redeemed = sevault.withdraw(withdrawn, RECEIVER, ONBEHALF);
 
-        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
         assertEq(
-            seVault.balanceOf(ONBEHALF),
+            loanToken.balanceOf(address(sevault)),
+            0,
+            "balanceOf(sevault)"
+        );
+        assertEq(loanToken.balanceOf(address(vault)), 0, "balanceOf(vault)");
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            shares - redeemed,
+            "balanceOf(address(sevault))"
+        );
+        assertEq(
+            sevault.balanceOf(ONBEHALF),
             shares - redeemed,
             "balanceOf(ONBEHALF)"
         );
@@ -132,16 +167,22 @@ contract ERC4626Test is SendEarnTest {
         loanToken.setBalance(SUPPLIER, deposited);
 
         vm.prank(SUPPLIER);
-        uint256 shares = seVault.deposit(deposited, ONBEHALF);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
 
         vm.expectEmit();
-        emit EventsLib.UpdateLastTotalAssets(seVault.totalAssets() - withdrawn);
+        emit EventsLib.UpdateLastTotalAssets(sevault.totalAssets() - withdrawn);
         vm.prank(ONBEHALF);
-        uint256 redeemed = seVault.withdraw(withdrawn, RECEIVER, ONBEHALF);
+        uint256 redeemed = sevault.withdraw(withdrawn, RECEIVER, ONBEHALF);
 
-        assertEq(loanToken.balanceOf(address(seVault)), 0, "balanceOf(vault)");
+        assertEq(loanToken.balanceOf(address(sevault)), 0, "balanceOf(vault)");
+        assertEq(loanToken.balanceOf(address(vault)), 0, "balanceOf(vault)");
         assertEq(
-            seVault.balanceOf(ONBEHALF),
+            vault.balanceOf(address(sevault)),
+            shares - redeemed,
+            "vault.balanceOf(address(sevault))"
+        );
+        assertEq(
+            sevault.balanceOf(ONBEHALF),
             shares - redeemed,
             "balanceOf(ONBEHALF)"
         );
@@ -154,8 +195,8 @@ contract ERC4626Test is SendEarnTest {
         loanToken.setBalance(SUPPLIER, deposited * 2);
 
         vm.startPrank(SUPPLIER);
-        uint256 shares = seVault.deposit(deposited, SUPPLIER);
-        seVault.deposit(deposited, ONBEHALF);
+        uint256 shares = sevault.deposit(deposited, SUPPLIER);
+        sevault.deposit(deposited, ONBEHALF);
         vm.stopPrank();
 
         vm.prank(SUPPLIER);
@@ -167,7 +208,7 @@ contract ERC4626Test is SendEarnTest {
                 shares + 1
             )
         );
-        seVault.redeem(shares + 1, RECEIVER, SUPPLIER);
+        sevault.redeem(shares + 1, RECEIVER, SUPPLIER);
     }
 
     function testWithdrawAll(uint256 assets) public {
@@ -176,24 +217,36 @@ contract ERC4626Test is SendEarnTest {
         loanToken.setBalance(SUPPLIER, assets);
 
         vm.prank(SUPPLIER);
-        uint256 minted = seVault.deposit(assets, ONBEHALF);
+        uint256 minted = sevault.deposit(assets, ONBEHALF);
 
         assertEq(
-            seVault.maxWithdraw(ONBEHALF),
+            sevault.maxWithdraw(ONBEHALF),
             assets,
             "maxWithdraw(ONBEHALF)"
         );
 
         vm.prank(ONBEHALF);
-        uint256 shares = seVault.withdraw(assets, RECEIVER, ONBEHALF);
+        uint256 shares = sevault.withdraw(assets, RECEIVER, ONBEHALF);
 
         assertEq(shares, minted, "shares");
-        assertEq(seVault.balanceOf(ONBEHALF), 0, "balanceOf(ONBEHALF)");
+        assertEq(sevault.balanceOf(ONBEHALF), 0, "balanceOf(ONBEHALF)");
         assertEq(
             loanToken.balanceOf(RECEIVER),
             assets,
             "loanToken.balanceOf(RECEIVER)"
         );
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            0,
+            "vault.balanceOf(address(sevault))"
+        );
+        assertEq(
+            morpho.expectedSupplyAssets(allMarkets[0], address(vault)),
+            0,
+            "expectedSupplyAssets(vault)"
+        );
+    }
+
         assertEq(
             morpho.expectedSupplyAssets(allMarkets[0], address(vault)),
             0,
