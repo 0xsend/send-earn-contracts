@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
+import {IMorphoFlashLoanCallback} from "morpho-blue/interfaces/IMorphoCallbacks.sol";
 import {IERC20Errors} from "openzeppelin-contracts/interfaces/draft-IERC6093.sol";
 import "./helpers/SendEarn.t.sol";
 
-contract ERC4626Test is SendEarnTest {
+contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
     using MorphoBalancesLib for IMorpho;
+    using MarketParamsLib for MarketParams;
 
     function setUp() public override {
         super.setUp();
@@ -473,5 +475,112 @@ contract ERC4626Test is SendEarnTest {
             toTransfer,
             "balanceOf(RECEIVER)"
         );
+    }
+
+    function testMaxWithdraw(
+        uint256 depositedAssets,
+        uint256 borrowedAssets
+    ) public {
+        depositedAssets = bound(
+            depositedAssets,
+            MIN_TEST_ASSETS,
+            MAX_TEST_ASSETS
+        );
+        borrowedAssets = bound(
+            borrowedAssets,
+            MIN_TEST_ASSETS,
+            depositedAssets
+        );
+
+        loanToken.setBalance(SUPPLIER, depositedAssets);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(depositedAssets, ONBEHALF);
+
+        collateralToken.setBalance(BORROWER, type(uint128).max);
+
+        vm.startPrank(BORROWER);
+        morpho.supplyCollateral(
+            allMarkets[0],
+            type(uint128).max,
+            BORROWER,
+            hex""
+        );
+        morpho.borrow(allMarkets[0], borrowedAssets, 0, BORROWER, BORROWER);
+
+        assertEq(
+            sevault.maxWithdraw(ONBEHALF),
+            depositedAssets - borrowedAssets,
+            "maxWithdraw(ONBEHALF)"
+        );
+        assertEq(
+            vault.maxWithdraw(address(sevault)),
+            depositedAssets - borrowedAssets,
+            "maxWithdraw(sevault)"
+        );
+    }
+
+    function testMaxWithdrawFlashLoan(
+        uint256 supplied,
+        uint256 deposited
+    ) public {
+        supplied = bound(supplied, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, supplied);
+
+        vm.prank(SUPPLIER);
+        morpho.supply(allMarkets[0], supplied, 0, ONBEHALF, hex"");
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(deposited, ONBEHALF);
+
+        assertGt(sevault.maxWithdraw(ONBEHALF), 0);
+        assertGt(vault.maxWithdraw(address(sevault)), 0);
+
+        loanToken.approve(address(morpho), type(uint256).max);
+        morpho.flashLoan(
+            address(loanToken),
+            loanToken.balanceOf(address(morpho)),
+            hex""
+        );
+    }
+
+    function testMaxDeposit() public {
+        _setCap(allMarkets[0], 1 ether);
+
+        Id[] memory supplyQueue = new Id[](1);
+        supplyQueue[0] = allMarkets[0].id();
+
+        vm.prank(ALLOCATOR);
+        vault.setSupplyQueue(supplyQueue);
+
+        loanToken.setBalance(SUPPLIER, 1 ether);
+        collateralToken.setBalance(BORROWER, 2 ether);
+
+        vm.prank(SUPPLIER);
+        morpho.supply(allMarkets[0], 1 ether, 0, SUPPLIER, hex"");
+
+        vm.startPrank(BORROWER);
+        morpho.supplyCollateral(allMarkets[0], 2 ether, BORROWER, hex"");
+        morpho.borrow(allMarkets[0], 1 ether, 0, BORROWER, BORROWER);
+        vm.stopPrank();
+
+        _forward(1_000);
+
+        loanToken.setBalance(SUPPLIER, 1 ether);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(1 ether, ONBEHALF);
+
+        assertEq(sevault.maxDeposit(SUPPLIER), 0);
+        assertEq(vault.maxDeposit(address(sevault)), 0);
+    }
+
+    function onMorphoFlashLoan(uint256, bytes memory) external {
+        assertEq(sevault.maxWithdraw(ONBEHALF), 0);
+        assertEq(vault.maxWithdraw(address(sevault)), 0);
     }
 }
