@@ -247,10 +247,110 @@ contract ERC4626Test is SendEarnTest {
         );
     }
 
+    function testRedeemAll(uint256 deposited) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 minted = sevault.deposit(deposited, ONBEHALF);
+
+        assertEq(sevault.maxRedeem(ONBEHALF), minted, "maxRedeem(ONBEHALF)");
+
+        vm.prank(ONBEHALF);
+        uint256 assets = sevault.redeem(minted, RECEIVER, ONBEHALF);
+
+        assertEq(assets, deposited, "assets");
+        assertEq(sevault.balanceOf(ONBEHALF), 0, "balanceOf(ONBEHALF)");
+        assertEq(
+            loanToken.balanceOf(RECEIVER),
+            deposited,
+            "loanToken.balanceOf(RECEIVER)"
+        );
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            0,
+            "vault.balanceOf(address(sevault))"
+        );
         assertEq(
             morpho.expectedSupplyAssets(allMarkets[0], address(vault)),
             0,
             "expectedSupplyAssets(vault)"
         );
+    }
+
+    function testWithdrawNotApproved(uint256 assets) public {
+        assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, assets);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(assets, ONBEHALF);
+
+        uint256 shares = sevault.previewWithdraw(assets);
+        vm.prank(RECEIVER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                RECEIVER,
+                0,
+                shares
+            )
+        );
+        sevault.withdraw(assets, RECEIVER, ONBEHALF);
+    }
+
+    function testTransferFrom(uint256 deposited, uint256 toTransfer) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
+
+        toTransfer = bound(toTransfer, 0, shares);
+
+        vm.prank(ONBEHALF);
+        sevault.approve(SUPPLIER, toTransfer);
+
+        vm.prank(SUPPLIER);
+        sevault.transferFrom(ONBEHALF, RECEIVER, toTransfer);
+
+        assertEq(
+            sevault.balanceOf(ONBEHALF),
+            shares - toTransfer,
+            "balanceOf(SUPPLIER)"
+        );
+        assertEq(
+            sevault.balanceOf(RECEIVER),
+            toTransfer,
+            "balanceOf(RECEIVER)"
+        );
+        assertEq(sevault.balanceOf(SUPPLIER), 0, "balanceOf(SUPPLIER)");
+    }
+
+    function testTransferFromNotApproved(
+        uint256 deposited,
+        uint256 amount
+    ) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
+
+        amount = bound(amount, 0, shares);
+
+        vm.prank(SUPPLIER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                SUPPLIER,
+                0,
+                shares
+            )
+        );
+        sevault.transferFrom(ONBEHALF, RECEIVER, shares);
     }
 }
