@@ -317,6 +317,11 @@ contract ERC4626Test is SendEarnTest {
         sevault.transferFrom(ONBEHALF, RECEIVER, toTransfer);
 
         assertEq(
+            vault.balanceOf(address(sevault)),
+            shares,
+            "balanceOf(sevault)"
+        );
+        assertEq(
             sevault.balanceOf(ONBEHALF),
             shares - toTransfer,
             "balanceOf(SUPPLIER)"
@@ -352,5 +357,121 @@ contract ERC4626Test is SendEarnTest {
             )
         );
         sevault.transferFrom(ONBEHALF, RECEIVER, shares);
+    }
+
+    function testWithdrawMoreThanBalanceButLessThanTotalAssets(
+        uint256 deposited,
+        uint256 assets
+    ) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.startPrank(SUPPLIER);
+        uint256 shares = sevault.deposit(deposited / 2, ONBEHALF);
+        sevault.deposit(deposited / 2, SUPPLIER);
+        vm.stopPrank();
+
+        assets = bound(assets, deposited / 2 + 1, sevault.totalAssets());
+
+        uint256 sharesBurnt = sevault.previewWithdraw(assets);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                ONBEHALF,
+                shares,
+                sharesBurnt
+            )
+        );
+        vm.prank(ONBEHALF);
+        sevault.withdraw(assets, RECEIVER, ONBEHALF);
+    }
+
+    function testWithdrawMoreThanTotalAssets(
+        uint256 deposited,
+        uint256 assets
+    ) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(deposited, ONBEHALF);
+
+        assets = bound(
+            assets,
+            deposited + 1,
+            type(uint256).max / (deposited + 1)
+        );
+
+        vm.prank(ONBEHALF);
+        vm.expectRevert(ErrorsLib.NotEnoughLiquidity.selector);
+        sevault.withdraw(assets, RECEIVER, ONBEHALF);
+    }
+
+    function testWithdrawMoreThanBalanceAndLiquidity(
+        uint256 deposited,
+        uint256 assets
+    ) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        sevault.deposit(deposited, ONBEHALF);
+
+        assets = bound(
+            assets,
+            deposited + 1,
+            type(uint256).max / (deposited + 1)
+        );
+
+        collateralToken.setBalance(BORROWER, type(uint128).max);
+
+        // Borrow liquidity.
+        vm.startPrank(BORROWER);
+        morpho.supplyCollateral(
+            allMarkets[0],
+            type(uint128).max,
+            BORROWER,
+            hex""
+        );
+        morpho.borrow(allMarkets[0], 1, 0, BORROWER, BORROWER);
+
+        vm.startPrank(ONBEHALF);
+        vm.expectRevert(ErrorsLib.NotEnoughLiquidity.selector);
+        sevault.withdraw(assets, RECEIVER, ONBEHALF);
+    }
+
+    function testTransfer(uint256 deposited, uint256 toTransfer) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 minted = sevault.deposit(deposited, ONBEHALF);
+
+        toTransfer = bound(toTransfer, 0, minted);
+
+        vm.prank(ONBEHALF);
+        sevault.transfer(RECEIVER, toTransfer);
+
+        assertEq(sevault.balanceOf(SUPPLIER), 0, "balanceOf(SUPPLIER)");
+        assertEq(
+            vault.balanceOf(address(sevault)),
+            minted,
+            "balanceOf(sevault)"
+        );
+        assertEq(
+            sevault.balanceOf(ONBEHALF),
+            minted - toTransfer,
+            "balanceOf(ONBEHALF)"
+        );
+        assertEq(
+            sevault.balanceOf(RECEIVER),
+            toTransfer,
+            "balanceOf(RECEIVER)"
+        );
     }
 }
