@@ -8,4 +8,13 @@ library Events {
     event SetFeeReferral(address indexed caller, uint256 feeReferral);
     event AccrueInterest(uint256 newTotalAssets, uint256 feeShares);
     event UpdateLastTotalAssets(uint256 newTotalAssets);
+    event CreateSendEarn(
+        address indexed sendEarn,
+        address indexed caller,
+        address initialOwner,
+        address indexed asset,
+        string name,
+        string symbol,
+        bytes32 salt
+    );
 }

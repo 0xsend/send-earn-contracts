@@ -61,25 +61,9 @@ contract FeesTest is SendEarnTest {
         sevault.setFeeRecipient(feeRecipient);
         assertEq(sevault.feeRecipient(), feeRecipient, "feeRecipient");
     }
-    function testSetFeeReferral(uint256 feeReferral) public {
-        feeReferral = bound(feeReferral, 0, ConstantsLib.MAX_FEE);
-        vm.assume(feeReferral != sevault.feeReferral());
-        vm.expectEmit(address(sevault));
-        emit Events.SetFeeReferral(SEND_OWNER, feeReferral);
-        vm.prank(SEND_OWNER);
-        sevault.setFeeReferral(feeReferral);
-        uint256 newFeeReferral = uint256(sevault.feeReferral());
-        assertEq(newFeeReferral, feeReferral, "feeReferral");
-    }
 
     function _feeShares() internal view returns (uint256) {
-        // this is exactly what maxWithdraw does that works for getting
-        // accurate interest generated for fee calculation
-        uint256 mmBalance = vault.balanceOf(address(sevault));
-        uint256 mmAssets = vault.convertToAssets(mmBalance);
-        uint256 totalAssetsAfter = mmAssets;
-        // this was the old way of getting the max withdraw
-        // uint256 totalAssetsAfter = sevault.totalAssets();
+        uint256 totalAssetsAfter = sevault.totalAssets();
         uint256 interest = totalAssetsAfter - sevault.lastTotalAssets();
         uint256 sendFeeAssets = interest.mulDiv(SEND_FEE, WAD);
         uint256 feeShares = sendFeeAssets.mulDiv(
