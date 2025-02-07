@@ -281,6 +281,46 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
         );
     }
 
+    function testRedeemNotDeposited(uint256 deposited) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
+
+        vm.prank(SUPPLIER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                SUPPLIER,
+                0,
+                shares
+            )
+        );
+        sevault.redeem(shares, SUPPLIER, SUPPLIER);
+    }
+
+    function testRedeemNotApproved(uint256 deposited) public {
+        deposited = bound(deposited, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        loanToken.setBalance(SUPPLIER, deposited);
+
+        vm.prank(SUPPLIER);
+        uint256 shares = sevault.deposit(deposited, ONBEHALF);
+
+        vm.prank(RECEIVER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                RECEIVER,
+                0,
+                shares
+            )
+        );
+        sevault.redeem(shares, RECEIVER, ONBEHALF);
+    }
+
     function testWithdrawNotApproved(uint256 assets) public {
         assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
 
@@ -577,6 +617,8 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
 
         assertEq(sevault.maxDeposit(SUPPLIER), 0);
         assertEq(vault.maxDeposit(address(sevault)), 0);
+        assertEq(sevault.maxMint(SUPPLIER), 0);
+        assertEq(vault.maxMint(address(sevault)), 0);
     }
 
     function onMorphoFlashLoan(uint256, bytes memory) external {

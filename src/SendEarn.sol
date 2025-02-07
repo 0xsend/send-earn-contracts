@@ -52,16 +52,6 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     /// @notice The last total assets
     uint256 public lastTotalAssets;
 
-    // TODO: Add fee tracking/accounting variables
-
-    /* EVENTS */
-
-    // TODO: Add events
-
-    /* ERRORS */
-
-    // TODO: Add errors
-
     /* CONSTRUCTOR */
 
     constructor(
@@ -82,10 +72,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
             uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals())
         );
 
-        // TODO: Initialize other state variables
-
-        // Approve Morpho vault to spend our underlying asset
-        IERC20(asset).approve(metaMorpho, type(uint256).max);
+        IERC20(asset).forceApprove(metaMorpho, type(uint256).max);
     }
 
     /* OWNER ONLY */
