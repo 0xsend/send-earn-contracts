@@ -226,7 +226,6 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     ) public override returns (uint256 shares) {
         uint256 newTotalAssets = _accrueFee();
 
-        // TODO: check worth to call `maxWithdraw` before withdrawing
         // Do not call expensive `maxWithdraw` and optimistically withdraw assets.
 
         shares = _convertToSharesWithTotals(
@@ -268,7 +267,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
 
     /// @inheritdoc IERC4626
     function totalAssets() public view override returns (uint256 assets) {
-        return META_MORPHO.maxWithdraw(address(this));
+        assets = _metaMorphoTotalAssets();
     }
 
     /* ERC4626 (INTERNAL) */
@@ -301,6 +300,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
         // since we are not withdrawing from morpho directly
         // but from the metamorpho vault
         // assets -= _simulateWithdrawMorpho(assets);
+        assets = UtilsLib.min(assets, META_MORPHO.maxWithdraw(address(this)));
     }
 
     /// @dev Returns the maximum amount of assets that the vault can supply on MetaMorpho.
@@ -420,7 +420,6 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
     function _accrueFee() internal returns (uint256 newTotalAssets) {
         uint256 feeShares;
         (feeShares, newTotalAssets) = _accruedFeeShares();
-
         if (feeShares != 0) _mint(feeRecipient, feeShares);
 
         emit Events.AccrueInterest(newTotalAssets, feeShares);
@@ -434,7 +433,6 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
         returns (uint256 feeShares, uint256 newTotalAssets)
     {
         newTotalAssets = totalAssets();
-
         uint256 totalInterest = newTotalAssets.zeroFloorSub(lastTotalAssets);
         if (totalInterest != 0 && fee != 0) {
             // It is acknowledged that `feeAssets` may be rounded down to 0 if `totalInterest * fee < WAD`.
@@ -448,5 +446,12 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step {
                 Math.Rounding.Floor
             );
         }
+    }
+
+    /// @dev Returns the total assets held in the Meta Morpho vault (with interest)
+    function _metaMorphoTotalAssets() internal view returns (uint256 assets) {
+        assets = META_MORPHO.convertToAssets(
+            META_MORPHO.balanceOf(address(this))
+        );
     }
 }

@@ -507,16 +507,16 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
             hex""
         );
         morpho.borrow(allMarkets[0], borrowedAssets, 0, BORROWER, BORROWER);
-
-        assertEq(
-            sevault.maxWithdraw(ONBEHALF),
-            depositedAssets - borrowedAssets,
-            "maxWithdraw(ONBEHALF)"
-        );
+        vm.stopPrank();
         assertEq(
             vault.maxWithdraw(address(sevault)),
             depositedAssets - borrowedAssets,
             "maxWithdraw(sevault)"
+        );
+        assertEq(
+            sevault.maxWithdraw(ONBEHALF),
+            depositedAssets - borrowedAssets,
+            "maxWithdraw(ONBEHALF)"
         );
     }
 
