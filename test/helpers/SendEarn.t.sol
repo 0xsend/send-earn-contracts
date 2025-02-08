@@ -11,7 +11,7 @@ contract SendEarnTest is IntegrationTest {
 
     address internal SEND_OWNER = makeAddr("SendOwner");
     address internal SEND_FEE_RECIPIENT = makeAddr("SendFeeRecipient");
-    address internal SEND_SKIM_RECIPIENT = makeAddr("SendSkimRecipient");
+    address internal SEND_COLLECTIONS = makeAddr("SendCollections");
 
     function setUp() public virtual override {
         super.setUp();
@@ -20,14 +20,10 @@ contract SendEarnTest is IntegrationTest {
             address(vault),
             address(loanToken),
             string.concat("Send Earn: ", vault.name()),
-            string.concat("se", vault.symbol())
+            string.concat("se", vault.symbol()),
+            SEND_FEE_RECIPIENT,
+            SEND_COLLECTIONS
         );
-
-        vm.startPrank(SEND_OWNER);
-        sevault.setFeeRecipient(SEND_FEE_RECIPIENT);
-        // TODO: add skim recipient
-        // sevault.setSkimRecipient(SEND_SKIM_RECIPIENT);
-        vm.stopPrank();
 
         loanToken.approve(address(sevault), type(uint256).max);
         collateralToken.approve(address(sevault), type(uint256).max);

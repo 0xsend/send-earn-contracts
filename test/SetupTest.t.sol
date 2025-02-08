@@ -12,9 +12,13 @@ contract SetupTest is SendEarnTest {
         assertEq(sevault.name(), "Send Earn: MetaMorpho Vault");
         assertEq(sevault.symbol(), "seMMV");
         assertEq(sevault.decimals(), 18);
-        // assertEq(sevault.totalAssets(), 0);
+        assertEq(sevault.totalAssets(), 0);
         assertEq(sevault.balanceOf(address(this)), 0);
-        // assertEq(sevault.convertToShares(1e18), 1e18);
-        // assertEq(sevault.convertToAssets(1e18), 1e18);
+        assertEq(sevault.feeRecipient(), SEND_FEE_RECIPIENT);
+        assertEq(sevault.fee(), 0);
+        assertEq(sevault.lastTotalAssets(), 0);
+        assertEq(sevault.collections(), SEND_COLLECTIONS);
+        assertEq(sevault.convertToShares(1e18), 1e18);
+        assertEq(sevault.convertToAssets(1e18), 1e18);
     }
 }

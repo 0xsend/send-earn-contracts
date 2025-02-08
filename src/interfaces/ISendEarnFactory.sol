@@ -15,12 +15,16 @@ interface ISendEarnFactory {
     /// @param asset The address of the underlying asset.
     /// @param name The name of the vault.
     /// @param symbol The symbol of the vault.
+    /// @param feeRecipient The address of the fee recipient.
+    /// @param collections The address of the collections.
     /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
     function createSendEarn(
         address initialOwner,
         address asset,
         string memory name,
         string memory symbol,
+        address feeRecipient,
+        address collections,
         bytes32 salt
     ) external returns (ISendEarn metaMorpho);
 }

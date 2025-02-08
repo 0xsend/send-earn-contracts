@@ -60,13 +60,18 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
 
     /* CONSTRUCTOR */
 
-    constructor(address owner, address metaMorpho, address asset, string memory _name, string memory _symbol)
-        ERC4626(IERC20(asset))
-        ERC20Permit(_name)
-        ERC20(_name, _symbol)
-        Ownable(owner)
-    {
+    constructor(
+        address owner,
+        address metaMorpho,
+        address asset,
+        string memory _name,
+        string memory _symbol,
+        address _feeRecipient,
+        address _collections
+    ) ERC4626(IERC20(asset)) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(owner) {
         if (metaMorpho == address(0)) revert Errors.ZeroAddress();
+        if (_feeRecipient != address(0)) feeRecipient = _feeRecipient;
+        if (_collections != address(0)) collections = _collections;
         META_MORPHO = IMetaMorpho(metaMorpho);
         DECIMALS_OFFSET = uint8(uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals()));
 

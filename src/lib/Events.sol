@@ -31,6 +31,8 @@ library Events {
         address indexed asset,
         string name,
         string symbol,
+        address feeRecipient,
+        address collections,
         bytes32 salt
     );
 }

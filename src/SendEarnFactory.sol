@@ -40,14 +40,23 @@ contract SendEarnFactory is ISendEarnFactory {
     /* EXTERNAL */
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarn(address initialOwner, address asset, string memory name, string memory symbol, bytes32 salt)
-        external
-        returns (ISendEarn sendEarn)
-    {
-        sendEarn = ISendEarn(address(new SendEarn{salt: salt}(initialOwner, META_MORPHO, asset, name, symbol)));
+    function createSendEarn(
+        address initialOwner,
+        address asset,
+        string memory name,
+        string memory symbol,
+        address feeRecipient,
+        address collections,
+        bytes32 salt
+    ) external returns (ISendEarn sendEarn) {
+        sendEarn = ISendEarn(
+            address(new SendEarn{salt: salt}(initialOwner, META_MORPHO, asset, name, symbol, feeRecipient, collections))
+        );
 
         isSendEarn[address(sendEarn)] = true;
 
-        emit Events.CreateSendEarn(address(sendEarn), msg.sender, initialOwner, asset, name, symbol, salt);
+        emit Events.CreateSendEarn(
+            address(sendEarn), msg.sender, initialOwner, asset, name, symbol, feeRecipient, collections, salt
+        );
     }
 }
