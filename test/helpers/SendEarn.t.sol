@@ -12,6 +12,7 @@ contract SendEarnTest is IntegrationTest {
     address internal SEND_OWNER = makeAddr("SendOwner");
     address internal SEND_FEE_RECIPIENT = makeAddr("SendFeeRecipient");
     address internal SEND_COLLECTIONS = makeAddr("SendCollections");
+    address internal SEND_PLATFORM = makeAddr("SendPlatform");
 
     function setUp() public virtual override {
         super.setUp();

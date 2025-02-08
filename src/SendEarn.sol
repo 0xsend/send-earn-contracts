@@ -89,7 +89,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         }
 
         // Accrue fee using the previous fee set before changing it.
-        this.accrueFee();
+        accrueFee();
 
         // Safe "unchecked" cast because newFee <= MAX_FEE.
         fee = uint96(newFee);
@@ -125,7 +125,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
     }
 
     /// @inheritdoc ISendEarnBase
-    function accrueFee() external {
+    function accrueFee() public {
         _updateLastTotalAssets(_accrueFee());
     }
 

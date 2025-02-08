@@ -13,4 +13,6 @@ library Errors {
     error MaxFeeExceeded();
     /// @notice Thrown when zero fee recipient is set
     error ZeroFeeRecipient();
+    /// @notice Thrown when max split is exceeded
+    error MaxSplitExceeded();
 }

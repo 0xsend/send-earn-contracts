@@ -16,6 +16,10 @@ library Events {
     event AccrueInterest(uint256 newTotalAssets, uint256 feeShares);
     /// @notice Emitted when the last total assets is updated to `updatedTotalAssets`.
     event UpdateLastTotalAssets(uint256 updatedTotalAssets);
+    /// @notice Emitted when the affiliate address is set to `newAffiliate`.
+    event SetAffiliate(address indexed newAffiliate);
+    /// @notice Emitted when the platform address is set to `newPlatform`.
+    event SetPlatform(address indexed newPlatform);
     /// @notice Emitted when a new SendEarn vault is created.
     /// @param sendEarn The address of the SendEarn vault.
     /// @param caller The caller of the function.
@@ -35,4 +39,6 @@ library Events {
         address collections,
         bytes32 salt
     );
+    /// @notice Emitted when the split is set to `newSplit`.
+    event SetSplit(uint256 newSplit);
 }
