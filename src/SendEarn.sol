@@ -30,7 +30,7 @@ import {ISendEarn} from "./interfaces/ISendEarn.sol";
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit USDC to earn yield through MetaMorpho
-contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, Multicall, ISendEarn {
+contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -83,7 +83,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, Multicall, ISendEarn {
         }
 
         // Accrue fee using the previous fee set before changing it.
-        _updateLastTotalAssets(_accrueFee());
+        this.accrueFee();
 
         // Safe "unchecked" cast because newFee <= MAX_FEE.
         fee = uint96(newFee);
@@ -115,6 +115,11 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, Multicall, ISendEarn {
         IERC20(token).safeTransfer(collections, amount);
 
         emit Events.Collect(_msgSender(), token, amount);
+    }
+
+    /// @inheritdoc ISendEarn
+    function accrueFee() external {
+        _updateLastTotalAssets(_accrueFee());
     }
 
     /* ERC4626 (PUBLIC) */
