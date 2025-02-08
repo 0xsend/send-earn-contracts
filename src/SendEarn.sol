@@ -25,12 +25,12 @@ import {Multicall} from "../lib/openzeppelin-contracts/contracts/utils/Multicall
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
-import {ISendEarn} from "./interfaces/ISendEarn.sol";
+import {ISendEarnBase} from "./interfaces/ISendEarn.sol";
 
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit USDC to earn yield through MetaMorpho
-contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
+contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -75,6 +75,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
 
     /* OWNER ONLY */
 
+    /// @inheritdoc ISendEarnBase
     function setFee(uint256 newFee) external onlyOwner {
         if (newFee == fee) revert Errors.AlreadySet();
         if (newFee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
@@ -91,13 +92,14 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
         emit Events.SetFee(_msgSender(), fee);
     }
 
+    /// @inheritdoc ISendEarnBase
     function setFeeRecipient(address newFeeRecipient) external onlyOwner {
         feeRecipient = newFeeRecipient;
 
         emit Events.SetFeeRecipient(newFeeRecipient);
     }
 
-    /// @inheritdoc ISendEarn
+    /// @inheritdoc ISendEarnBase
     function setCollections(address newCollections) external onlyOwner {
         collections = newCollections;
 
@@ -106,7 +108,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
 
     /* EXTERNAL */
 
-    /// @inheritdoc ISendEarn
+    /// @inheritdoc ISendEarnBase
     function collect(address token) external {
         if (collections == address(0)) revert Errors.ZeroAddress();
 
@@ -117,7 +119,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
         emit Events.Collect(_msgSender(), token, amount);
     }
 
-    /// @inheritdoc ISendEarn
+    /// @inheritdoc ISendEarnBase
     function accrueFee() external {
         _updateLastTotalAssets(_accrueFee());
     }
@@ -215,7 +217,8 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
 
     /// @inheritdoc IERC4626
     function totalAssets() public view override returns (uint256 assets) {
-        assets = _metaMorphoTotalAssets();
+        // Returns the total assets held in the Meta Morpho vault (with interest)
+        assets = META_MORPHO.convertToAssets(META_MORPHO.balanceOf(address(this)));
     }
 
     /* ERC4626 (INTERNAL) */
@@ -344,10 +347,5 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn, Multicall {
             feeShares =
                 _convertToSharesWithTotals(feeAssets, totalSupply(), newTotalAssets - feeAssets, Math.Rounding.Floor);
         }
-    }
-
-    /// @dev Returns the total assets held in the Meta Morpho vault (with interest)
-    function _metaMorphoTotalAssets() internal view returns (uint256 assets) {
-        assets = META_MORPHO.convertToAssets(META_MORPHO.balanceOf(address(this)));
     }
 }
