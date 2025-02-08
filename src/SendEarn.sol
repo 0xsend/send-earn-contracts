@@ -21,6 +21,7 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
+import {Multicall} from "../lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
@@ -29,7 +30,7 @@ import {ISendEarn} from "./interfaces/ISendEarn.sol";
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit USDC to earn yield through MetaMorpho
-contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn {
+contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, Multicall, ISendEarn {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -50,6 +51,9 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn {
 
     /// @notice The fee recipient
     address public feeRecipient;
+
+    /// @notice The collection address, all ERC20 tokens on this contract will be sent to this address
+    address public collections;
 
     /// @notice The last total assets
     uint256 public lastTotalAssets;
@@ -94,8 +98,23 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarn {
     }
 
     /// @inheritdoc ISendEarn
-    function claimRewards(address receiver) external onlyOwner {
-        // TODO: implement
+    function setCollections(address newCollections) external onlyOwner {
+        collections = newCollections;
+
+        emit Events.SetCollections(newCollections);
+    }
+
+    /* EXTERNAL */
+
+    /// @inheritdoc ISendEarn
+    function collect(address token) external {
+        if (collections == address(0)) revert Errors.ZeroAddress();
+
+        uint256 amount = IERC20(token).balanceOf(address(this));
+
+        IERC20(token).safeTransfer(collections, amount);
+
+        emit Events.Collect(_msgSender(), token, amount);
     }
 
     /* ERC4626 (PUBLIC) */

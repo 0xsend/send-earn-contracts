@@ -12,6 +12,8 @@
     "build:blue": "bun run --cwd lib/morpho-blue/ build:forge",
     "test": "bun run test:forge",
     "test:forge": "bun build:blue && FOUNDRY_PROFILE=test forge test",
+    "test:coverage": "bun build:blue && forge coverage --report lcov",
+    "test:gas-snapshot": "bun build:blue && forge snapshot",
     "lint": "bun run lint:forge",
     "lint:forge": "forge fmt --check",
     "lint:fix": "bun run lint:forge:fix",

@@ -3,6 +3,8 @@ pragma solidity 0.8.21;
 
 interface ISendEarn {
     function setFeeRecipient(address newFeeRecipient) external;
-    /// @notice Claims MetaMorpho rewards for the vault
-    function claimRewards(address receiver) external;
+    /// @notice Sets the collections address, all ERC20 tokens on this contract will be sent to this address
+    function setCollections(address newCollections) external;
+    /// @notice Transfers ERC20 tokens to the collections address, used mainly for claimed rewards
+    function collect(address token) external;
 }
