@@ -2,16 +2,11 @@
 pragma solidity 0.8.21;
 
 import {ISendEarn} from "./ISendEarn.sol";
+import {ISplitConfig} from "./ISplitConfig.sol";
 
-interface ISendEarnFactory {
+interface ISendEarnFactory is ISplitConfig {
     /// @notice The address of the MetaMorpho contract that SendEarn vaults uses.
     function META_MORPHO() external view returns (address);
-
-    /// @notice The address of the platform that receives Send Earn fees.
-    function platform() external view returns (address);
-
-    /// @notice The current split to the referrer.
-    function split() external view returns (uint256);
 
     /// @notice Tracks existing affiliates contracts.
     function affiliates(address) external view returns (address);

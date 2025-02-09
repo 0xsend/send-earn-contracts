@@ -5,10 +5,11 @@ import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.
 
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
 import {ISendEarnFactory} from "./interfaces/ISendEarnFactory.sol";
+import {ISplitConfig} from "./interfaces/ISendEarnAffiliate.sol";
 
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
-
+import {Constants} from "./lib/Constants.sol";
 import {SendEarn} from "./SendEarn.sol";
 
 /// @title SendEarnFactory
@@ -21,11 +22,6 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /// @inheritdoc ISendEarnFactory
     address public immutable META_MORPHO;
 
-    /* CONSTANTS */
-
-    /// @notice the total basis points of the split
-    uint256 public constant SPLIT_TOTAL = 10_000;
-
     /* STORAGE */
 
     /// @inheritdoc ISendEarnFactory
@@ -34,10 +30,10 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /// @inheritdoc ISendEarnFactory
     mapping(address => address) public affiliates;
 
-    /// @notice The address of the platform that receives Send Earn fees and rewards.
+    /// @inheritdoc ISplitConfig
     address public platform;
 
-    /// @notice The current split to the referrer.
+    /// @inheritdoc ISplitConfig
     uint256 public split;
 
     /* CONSTRUCTOR */
@@ -65,7 +61,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /// @inheritdoc ISendEarnFactory
     function setSplit(uint256 newSplit) external onlyOwner {
         if (newSplit == split) revert Errors.AlreadySet();
-        if (newSplit > SPLIT_TOTAL) revert Errors.MaxSplitExceeded();
+        if (newSplit > Constants.SPLIT_TOTAL) revert Errors.MaxSplitExceeded();
 
         split = newSplit;
 

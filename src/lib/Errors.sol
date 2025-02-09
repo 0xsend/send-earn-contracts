@@ -15,4 +15,6 @@ library Errors {
     error ZeroFeeRecipient();
     /// @notice Thrown when max split is exceeded
     error MaxSplitExceeded();
+    /// @notice Thrown when zero amount is passed
+    error ZeroAmount();
 }

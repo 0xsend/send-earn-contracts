@@ -5,6 +5,7 @@ import "./helpers/SendEarn.t.sol";
 import {SendEarnFactory} from "../src/SendEarnFactory.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
+import {Constants} from "../src/lib/Constants.sol";
 
 contract SendEarnFactoryTest is SendEarnTest {
     SendEarnFactory factory;
@@ -41,9 +42,9 @@ contract SendEarnFactoryTest is SendEarnTest {
     }
 
     function testSetSplit(uint256 newSplit) public {
+        newSplit = bound(newSplit, 0, Constants.SPLIT_TOTAL);
         vm.assume(newSplit != factory.split());
         vm.startPrank(SEND_OWNER);
-        newSplit = bound(newSplit, 0, factory.SPLIT_TOTAL());
         vm.expectEmit(address(factory));
         emit Events.SetSplit(newSplit);
         factory.setSplit(newSplit);
@@ -52,7 +53,7 @@ contract SendEarnFactoryTest is SendEarnTest {
 
     function testSetSplitMaxExceeded() public {
         vm.startPrank(SEND_OWNER);
-        uint256 newSplit = factory.SPLIT_TOTAL() + 1;
+        uint256 newSplit = Constants.SPLIT_TOTAL + 1;
         vm.expectRevert(Errors.MaxSplitExceeded.selector);
         factory.setSplit(newSplit);
     }

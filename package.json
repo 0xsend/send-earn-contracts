@@ -14,7 +14,7 @@
     "test:forge": "bun build:blue && FOUNDRY_PROFILE=test forge test",
     "test:coverage": "bun build:blue && forge coverage --report lcov",
     "test:snapshot": "bun build:blue && forge snapshot",
-    "test:update": "bun run test:coverage && yarn test:gas-snapshot",
+    "test:update": "bun run test:coverage && bun run test:snapshot",
     "lint": "bun run lint:forge",
     "lint:forge": "forge fmt --check",
     "lint:fix": "bun run lint:forge:fix",

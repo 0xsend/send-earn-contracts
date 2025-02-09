@@ -20,6 +20,12 @@ library Events {
     event SetAffiliate(address indexed newAffiliate);
     /// @notice Emitted when the platform address is set to `newPlatform`.
     event SetPlatform(address indexed newPlatform);
+    /// @notice Emitted when the affiliate pays out the earnings.
+    /// @param caller The caller of the function.
+    /// @param amount The total amount of tokens paid out to the platform and affiliate.
+    /// @param platformSplit The portion of tokens paid out to the platform.
+    /// @param affiliateSplit The portion of tokens paid out to the affiliate.
+    event AffiliatePay(address indexed caller, uint256 amount, uint256 platformSplit, uint256 affiliateSplit);
     /// @notice Emitted when a new SendEarn vault is created.
     /// @param sendEarn The address of the SendEarn vault.
     /// @param caller The caller of the function.

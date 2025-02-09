@@ -20,7 +20,6 @@ import {
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
-import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {Multicall} from "../lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
@@ -33,7 +32,6 @@ import {ISendEarnBase} from "./interfaces/ISendEarn.sol";
 contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall {
     using Math for uint256;
     using SafeERC20 for IERC20;
-    using SafeCast for uint256;
     using UtilsLib for uint256;
 
     /* IMMUTABLES */
