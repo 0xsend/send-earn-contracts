@@ -2,6 +2,7 @@
 pragma solidity 0.8.21;
 
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
+import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
 import {ISendEarnFactory} from "./interfaces/ISendEarnFactory.sol";
@@ -11,6 +12,7 @@ import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
 import {SendEarn} from "./SendEarn.sol";
+import {SendEarnAffiliate} from "./SendEarnAffiliate.sol";
 
 /// @title SendEarnFactory
 /// @author Send Squad
@@ -19,8 +21,9 @@ import {SendEarn} from "./SendEarn.sol";
 contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /* IMMUTABLES */
 
-    /// @inheritdoc ISendEarnFactory
-    address public immutable META_MORPHO;
+    IMetaMorpho private immutable _META_MORPHO;
+
+    ISendEarn private immutable defaultSendEarn;
 
     /* STORAGE */
 
@@ -28,7 +31,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     mapping(address => bool) public isSendEarn;
 
     /// @inheritdoc ISendEarnFactory
-    mapping(address => address) public affiliates;
+    mapping(address => bool) public affiliates;
 
     /// @inheritdoc ISplitConfig
     address public platform;
@@ -40,10 +43,14 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
 
     /// @dev Initializes the contract.
     /// @param metaMorpho The address of the MetaMorpho contract.
-    constructor(address owner, address metaMorpho) Ownable(owner) {
+    constructor(address owner, address metaMorpho, bytes32 salt) Ownable(owner) {
         if (metaMorpho == address(0)) revert Errors.ZeroAddress();
 
-        META_MORPHO = metaMorpho;
+        _META_MORPHO = IMetaMorpho(metaMorpho);
+        // create the default(no affiliate) send earn contract
+        ISendEarn sendEarn = createSendEarn(platform, salt);
+        isSendEarn[address(sendEarn)] = true;
+        defaultSendEarn = sendEarn;
     }
 
     /* OWNER ONLY */
@@ -68,44 +75,54 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         emit Events.SetSplit(newSplit);
     }
 
+    /// @inheritdoc ISendEarnFactory
+    function META_MORPHO() public view returns (address) {
+        return address(_META_MORPHO);
+    }
+
     /* EXTERNAL */
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarn(
-        address initialOwner,
-        address asset,
-        string memory name,
-        string memory symbol,
-        address feeRecipient,
-        address collections,
-        bytes32 salt
-    ) public returns (ISendEarn sendEarn) {
+    function createSendEarn(address feeRecipient, bytes32 salt) public returns (ISendEarn sendEarn) {
         sendEarn = ISendEarn(
-            address(new SendEarn{salt: salt}(initialOwner, META_MORPHO, asset, name, symbol, feeRecipient, collections))
+            address(
+                new SendEarn{salt: salt}(
+                    owner(),
+                    META_MORPHO(),
+                    _META_MORPHO.asset(),
+                    string.concat("Send Earn: ", _META_MORPHO.name()),
+                    string.concat("se", _META_MORPHO.symbol()),
+                    feeRecipient,
+                    platform
+                )
+            )
         );
 
         isSendEarn[address(sendEarn)] = true;
 
         emit Events.CreateSendEarn(
-            address(sendEarn), msg.sender, initialOwner, asset, name, symbol, feeRecipient, collections, salt
+            address(sendEarn),
+            msg.sender,
+            owner(),
+            META_MORPHO(),
+            _META_MORPHO.asset(),
+            string.concat("Send Earn: ", _META_MORPHO.name()),
+            string.concat("se", _META_MORPHO.symbol()),
+            feeRecipient,
+            platform,
+            salt
         );
     }
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarnWithReferrer(
-        address asset,
-        string memory name,
-        string memory symbol,
-        address referrer,
-        bytes32 salt
-    ) external returns (ISendEarn sendEarn) {
-        if (referrer != address(0) && affiliates[referrer] == address(0)) {
-            // TODO: create an affiliate contract and set the affiliate address
-            // to the new contract
-        }
+    function createSendEarnWithReferrer(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
         address feeRecipient = platform;
-        address collections = platform;
+        if (!affiliates[referrer]) {
+            SendEarnAffiliate affiliate = new SendEarnAffiliate(referrer, address(this), address(defaultSendEarn));
+            affiliates[referrer] = true;
+            emit Events.NewAffiliate(referrer, address(affiliate));
+        }
         // create the send earn contract
-        sendEarn = createSendEarn(owner(), asset, name, symbol, feeRecipient, collections, salt);
+        sendEarn = createSendEarn(feeRecipient, salt);
     }
 }

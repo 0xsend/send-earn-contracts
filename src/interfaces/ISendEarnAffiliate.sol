@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {ISplitConfig} from "./ISplitConfig.sol";
 
 interface ISendEarnAffiliate {
@@ -9,8 +9,8 @@ interface ISendEarnAffiliate {
     function splitConfig() external view returns (ISplitConfig);
     /// @notice The address of the affiliate receiving the earnings.
     function affiliate() external view returns (address);
-    /// @notice The token to split
-    function token() external view returns (IERC20);
+    /// @notice The address of the vault that earnings are paid to on behalf of the affiliate and platform.
+    function payVault() external view returns (IERC4626);
     /// @notice Pays out the earnings to the platform and affiliate.
-    function pay() external;
+    function pay(IERC4626 vault) external;
 }

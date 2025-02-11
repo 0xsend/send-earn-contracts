@@ -17,4 +17,6 @@ library Errors {
     error MaxSplitExceeded();
     /// @notice Thrown when zero amount is passed
     error ZeroAmount();
+    /// @notice Thrown when there is an asset mismatch
+    error AssetMismatch();
 }

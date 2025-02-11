@@ -5,10 +5,9 @@ import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
 import {ISendEarnAffiliate, ISplitConfig} from "./interfaces/ISendEarnAffiliate.sol";
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {IERC20, IERC4626, Math, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
+import {ISendEarn} from "./interfaces/ISendEarn.sol";
 
 /// @notice Affiliate contract for splitting earnings between platform and an affiliate.
 contract SendEarnAffiliate is ISendEarnAffiliate {
@@ -25,31 +24,41 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
     address public immutable override affiliate;
 
     /// @inheritdoc ISendEarnAffiliate
-    IERC20 public immutable override token;
+    IERC4626 public immutable override payVault;
 
     /* CONSTRUCTOR */
 
-    constructor(address _affiliate, address _splitConfig, address _token) {
-        if (_token == address(0)) revert Errors.ZeroAddress();
+    constructor(address _affiliate, address _splitConfig, address _payVault) {
         if (_affiliate == address(0)) revert Errors.ZeroAddress();
         if (_splitConfig == address(0)) revert Errors.ZeroAddress();
+        if (_payVault == address(0)) revert Errors.ZeroAddress();
         affiliate = _affiliate;
         splitConfig = ISplitConfig(_splitConfig);
-        token = IERC20(_token);
+        payVault = IERC4626(_payVault);
+        IERC20 asset = IERC20(payVault.asset());
+        asset.forceApprove(_payVault, type(uint256).max);
     }
 
     /// @inheritdoc ISendEarnAffiliate
-    function pay() external {
-        uint256 amount = token.balanceOf(address(this));
+    function pay(IERC4626 vault) external {
+        IERC20 asset = IERC20(vault.asset());
+        if (address(asset) != address(payVault.asset())) revert Errors.AssetMismatch();
+        // find the amount of tokens to pay
+        uint256 amount = vault.balanceOf(address(this));
         if (amount == 0) revert Errors.ZeroAmount();
 
+        // convert to the underlying asset
+        uint256 assets = vault.redeem(amount, address(this), address(this));
+
+        // calculate the split
         uint256 split = splitConfig.split();
-        uint256 platformSplit = amount.mulDiv(split, Constants.SPLIT_TOTAL);
-        uint256 affiliateSplit = amount.mulDiv(Constants.SPLIT_TOTAL - split, Constants.SPLIT_TOTAL);
+        uint256 platformSplit = assets.mulDiv(split, Constants.SPLIT_TOTAL);
+        uint256 affiliateSplit = assets.mulDiv(Constants.SPLIT_TOTAL - split, Constants.SPLIT_TOTAL);
 
-        token.safeTransfer(splitConfig.platform(), platformSplit);
-        token.safeTransfer(affiliate, affiliateSplit);
+        // transfer the split to the platform and affiliate
+        payVault.deposit(platformSplit, splitConfig.platform());
+        payVault.deposit(affiliateSplit, affiliate);
 
-        emit Events.AffiliatePay(msg.sender, amount, platformSplit, affiliateSplit);
+        emit Events.AffiliatePay(msg.sender, address(vault), address(asset), assets, platformSplit, affiliateSplit);
     }
 }

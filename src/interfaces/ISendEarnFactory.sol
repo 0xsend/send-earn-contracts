@@ -3,13 +3,14 @@ pragma solidity 0.8.21;
 
 import {ISendEarn} from "./ISendEarn.sol";
 import {ISplitConfig} from "./ISplitConfig.sol";
+import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 interface ISendEarnFactory is ISplitConfig {
-    /// @notice The address of the MetaMorpho contract that SendEarn vaults uses.
+    /// @notice The MetaMorpho contract that SendEarn vaults uses.
     function META_MORPHO() external view returns (address);
 
     /// @notice Tracks existing affiliates contracts.
-    function affiliates(address) external view returns (address);
+    function affiliates(address) external view returns (bool);
 
     /// @notice Sets the address of the platform that receives Send Earn fees
     function setPlatform(address newPlatform) external;
@@ -21,34 +22,12 @@ interface ISendEarnFactory is ISplitConfig {
     function isSendEarn(address target) external view returns (bool);
 
     /// @notice Creates a new SendEarn vault.
-    /// @param initialOwner The owner of the vault.
-    /// @param asset The address of the underlying asset.
-    /// @param name The name of the vault.
-    /// @param symbol The symbol of the vault.
     /// @param feeRecipient The address of the fee recipient.
-    /// @param collections The address of the collections.
     /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
-    function createSendEarn(
-        address initialOwner,
-        address asset,
-        string memory name,
-        string memory symbol,
-        address feeRecipient,
-        address collections,
-        bytes32 salt
-    ) external returns (ISendEarn sendEarn);
+    function createSendEarn(address feeRecipient, bytes32 salt) external returns (ISendEarn sendEarn);
 
     /// @notice Creates a new SendEarn vault with a referrer.
-    /// @param asset The address of the underlying asset.
-    /// @param name The name of the vault.
-    /// @param symbol The symbol of the vault.
     /// @param referrer The address of the referrer.
     /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
-    function createSendEarnWithReferrer(
-        address asset,
-        string memory name,
-        string memory symbol,
-        address referrer,
-        bytes32 salt
-    ) external returns (ISendEarn sendEarn);
+    function createSendEarnWithReferrer(address referrer, bytes32 salt) external returns (ISendEarn sendEarn);
 }

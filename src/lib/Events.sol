@@ -22,13 +22,23 @@ library Events {
     event SetPlatform(address indexed newPlatform);
     /// @notice Emitted when the affiliate pays out the earnings.
     /// @param caller The caller of the function.
+    /// @param sendEarnVault The address of the SendEarn vault.
+    /// @param asset The address of the underlying asset.
     /// @param amount The total amount of tokens paid out to the platform and affiliate.
     /// @param platformSplit The portion of tokens paid out to the platform.
     /// @param affiliateSplit The portion of tokens paid out to the affiliate.
-    event AffiliatePay(address indexed caller, uint256 amount, uint256 platformSplit, uint256 affiliateSplit);
+    event AffiliatePay(
+        address indexed caller,
+        address indexed sendEarnVault,
+        address indexed asset,
+        uint256 amount,
+        uint256 platformSplit,
+        uint256 affiliateSplit
+    );
     /// @notice Emitted when a new SendEarn vault is created.
     /// @param sendEarn The address of the SendEarn vault.
     /// @param caller The caller of the function.
+    /// @param metaMorpho The address of the MetaMorpho contract.
     /// @param initialOwner The initial owner of the SendEarn vault.
     /// @param asset The address of the underlying asset.
     /// @param name The name of the SendEarn vault.
@@ -38,6 +48,7 @@ library Events {
         address indexed sendEarn,
         address indexed caller,
         address initialOwner,
+        address metaMorpho,
         address indexed asset,
         string name,
         string symbol,
@@ -47,4 +58,8 @@ library Events {
     );
     /// @notice Emitted when the split is set to `newSplit`.
     event SetSplit(uint256 newSplit);
+    /// @notice Emitted when a new affiliate is created.
+    /// @param affiliate The address of the affiliate.
+    /// @param sea The address of the SendEarnAffiliate contract.
+    event NewAffiliate(address affiliate, address sea);
 }

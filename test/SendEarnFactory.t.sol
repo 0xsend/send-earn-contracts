@@ -7,13 +7,14 @@ import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
 import {Constants} from "../src/lib/Constants.sol";
 
+bytes32 constant SALT = bytes32(uint256(1));
+
 contract SendEarnFactoryTest is SendEarnTest {
     SendEarnFactory factory;
 
     function setUp() public override {
         super.setUp();
-
-        factory = new SendEarnFactory(SEND_OWNER, address(vault));
+        factory = new SendEarnFactory(SEND_OWNER, address(vault), SALT);
 
         vm.startPrank(SEND_OWNER);
         factory.setPlatform(SEND_PLATFORM);
@@ -22,7 +23,7 @@ contract SendEarnFactoryTest is SendEarnTest {
 
     function testFactoryAddressZero() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnFactory(SEND_OWNER, address(0));
+        new SendEarnFactory(SEND_OWNER, address(0), SALT);
     }
 
     function testSetPlatform(address newPlatform) public {

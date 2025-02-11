@@ -4,19 +4,22 @@ pragma solidity 0.8.21;
 import {Events} from "../src/lib/Events.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Constants} from "../src/lib/Constants.sol";
-
-import "./helpers/SendEarn.t.sol";
 import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
 import {ISplitConfig} from "../src/interfaces/ISendEarnAffiliate.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
+import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
+
+import {SendEarnTest, Math, ERC20Mock, BLOCK_TIME, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
+import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 
 contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
     using Math for uint256;
     using UtilsLib for uint256;
 
+    address internal PLATFORM = makeAddr("Platform");
     address internal AFFILIATE = makeAddr("Affiliate");
 
-    ERC20Mock internal token = new ERC20Mock("affiliate", "A");
+    IERC4626 internal affiliateVault = new ERC4626Mock(IERC20(address(loanToken)), "affiliate", "vA");
 
     SendEarnAffiliate internal affiliate;
 
@@ -24,52 +27,69 @@ contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
 
     function setUp() public override {
         super.setUp();
-
-        affiliate = new SendEarnAffiliate(AFFILIATE, address(this), address(token));
+        affiliate = new SendEarnAffiliate(AFFILIATE, address(this), address(sevault));
+        vm.prank(address(affiliate));
+        loanToken.approve(address(affiliateVault), type(uint256).max);
     }
 
+    /* ISplitConfig */
+
     function platform() external view returns (address) {
-        return SEND_PLATFORM;
+        return PLATFORM;
     }
 
     function split() external view returns (uint256) {
         return _split;
     }
 
-    function testNoToken() public {
-        vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnAffiliate(AFFILIATE, address(this), address(0));
+    /* Internal */
+
+    function deposit(uint256 amount) internal {
+        loanToken.setBalance(address(affiliate), amount);
+        vm.prank(address(affiliate));
+        affiliateVault.deposit(amount, address(affiliate));
     }
+
+    /* Tests */
 
     function testNoAffiliate() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnAffiliate(address(0), address(this), address(token));
+        new SendEarnAffiliate(address(0), address(this), address(sevault));
     }
 
     function testNoSplitConfig() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnAffiliate(AFFILIATE, address(0), address(token));
+        new SendEarnAffiliate(AFFILIATE, address(0), address(sevault));
     }
 
     function testPay(uint256 amount, uint256 __split) public {
-        amount = bound(amount, 1, type(uint256).max);
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
         _split = bound(__split, 0, Constants.SPLIT_TOTAL);
 
-        token.setBalance(address(affiliate), amount);
+        deposit(amount);
 
         uint256 platformSplit = amount.mulDiv(_split, Constants.SPLIT_TOTAL);
         uint256 affiliateSplit = amount.mulDiv(Constants.SPLIT_TOTAL - _split, Constants.SPLIT_TOTAL);
 
         vm.expectEmit(address(affiliate));
-        emit Events.AffiliatePay(address(this), amount, platformSplit, affiliateSplit);
-        affiliate.pay();
+        emit Events.AffiliatePay(
+            address(this), address(affiliateVault), address(loanToken), amount, platformSplit, affiliateSplit
+        );
+        affiliate.pay(affiliateVault);
 
-        assertEq(token.balanceOf(SEND_PLATFORM), platformSplit, "balanceOf(SEND_PLATFORM)");
-        assertEq(token.balanceOf(AFFILIATE), affiliateSplit, "balanceOf(AFFILIATE)");
-        assertEq(
-            token.balanceOf(address(affiliate)),
+        assertEq(sevault.balanceOf(PLATFORM), platformSplit, "balanceOf(PLATFORM)");
+        assertEq(sevault.balanceOf(AFFILIATE), affiliateSplit, "balanceOf(AFFILIATE)");
+        assertApproxEqAbs(
+            sevault.balanceOf(address(affiliate)),
             amount - platformSplit - affiliateSplit,
+            1,
             "balanceOf(address(affiliate))"
+        );
+        // Verify total transferred equals original amount minus dust
+        assertLe(
+            sevault.balanceOf(PLATFORM) + sevault.balanceOf(AFFILIATE),
+            amount,
+            "Total transferred should not exceed original amount"
         );
     }
 
@@ -79,15 +99,15 @@ contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
 
         testPay(amount, _split);
 
-        assertEq(token.balanceOf(SEND_PLATFORM), 80 ether, "balanceOf(SEND_PLATFORM)");
-        assertEq(token.balanceOf(AFFILIATE), 20 ether, "balanceOf(AFFILIATE)");
+        assertEq(sevault.balanceOf(PLATFORM), 80 ether, "balanceOf(PLATFORM)");
+        assertEq(sevault.balanceOf(AFFILIATE), 20 ether, "balanceOf(AFFILIATE)");
     }
 
     function testPayZeroAmount() public {
-        token.setBalance(address(affiliate), 0);
+        deposit(0);
 
         vm.expectRevert(Errors.ZeroAmount.selector);
-        affiliate.pay();
+        affiliate.pay(affiliateVault);
     }
 
     function testPayMaximumSplit() public {
@@ -96,8 +116,8 @@ contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
 
         testPay(amount, _split);
 
-        assertEq(token.balanceOf(SEND_PLATFORM), amount, "Platform should receive all");
-        assertEq(token.balanceOf(AFFILIATE), 0, "Affiliate should receive nothing");
+        assertEq(sevault.balanceOf(PLATFORM), amount, "Platform should receive all");
+        assertEq(sevault.balanceOf(AFFILIATE), 0, "Affiliate should receive nothing");
     }
 
     function testPayMinimumSplit() public {
@@ -106,42 +126,30 @@ contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
 
         testPay(amount, _split);
 
-        assertEq(token.balanceOf(SEND_PLATFORM), 0, "Platform should receive nothing");
-        assertEq(token.balanceOf(AFFILIATE), amount, "Affiliate should receive all");
-    }
-
-    function testPayRounding() public {
-        uint256 amount = 100; // Small amount to force rounding
-        _split = 3333; // Non-even split that will cause rounding
-
-        testPay(amount, _split);
-
-        // Verify total transferred equals original amount minus dust
-        assertLe(
-            token.balanceOf(SEND_PLATFORM) + token.balanceOf(AFFILIATE),
-            amount,
-            "Total transferred should not exceed original amount"
-        );
+        assertEq(sevault.balanceOf(PLATFORM), 0, "Platform should receive nothing");
+        assertEq(sevault.balanceOf(AFFILIATE), amount, "Affiliate should receive all");
     }
 
     function testPayWithChangingSplit() public {
         uint256 amount = 100 ether;
         _split = 0.5 ether; // Start with 50/50
 
-        token.setBalance(address(affiliate), amount);
-        affiliate.pay();
+        deposit(amount);
+        affiliate.pay(affiliateVault);
 
         _forward(100);
 
         // Change split and verify new split is respected
         _split = 0.7 ether; // Change to 70/30
-        token.setBalance(address(affiliate), amount);
+        deposit(amount);
 
         uint256 expectedPlatform = amount.mulDiv(0.7 ether, Constants.SPLIT_TOTAL);
         uint256 expectedAffiliate = amount.mulDiv(0.3 ether, Constants.SPLIT_TOTAL);
 
         vm.expectEmit(address(affiliate));
-        emit Events.AffiliatePay(address(this), amount, expectedPlatform, expectedAffiliate);
-        affiliate.pay();
+        emit Events.AffiliatePay(
+            address(this), address(affiliateVault), address(loanToken), amount, expectedPlatform, expectedAffiliate
+        );
+        affiliate.pay(affiliateVault);
     }
 }
