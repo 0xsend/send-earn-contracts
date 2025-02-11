@@ -2,6 +2,7 @@
 pragma solidity 0.8.21;
 
 import "./helpers/SendEarn.t.sol";
+import {ISendEarn} from "../src/interfaces/ISendEarn.sol";
 import {SendEarnFactory} from "../src/SendEarnFactory.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
@@ -19,6 +20,22 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.startPrank(SEND_OWNER);
         factory.setPlatform(SEND_PLATFORM);
         vm.stopPrank();
+    }
+
+    function testDefaultSendEarnIsCreated() public {
+        if (factory.affiliates(address(0)) == address(0)) {
+            revert Errors.ZeroAddress();
+        }
+        if (factory.SEND_EARN() == address(0)) {
+            revert Errors.ZeroAddress();
+        }
+        assertEq(factory.isSendEarn(address(factory.SEND_EARN())), true, "isSendEarn");
+        assertEq(factory.affiliates(address(0)), address(factory.SEND_EARN()), "affiliates");
+        ISendEarn sendEarn = ISendEarn(factory.SEND_EARN());
+        assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
+        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        // TODO: share fee recipient with factory and send eanr vaults
+        // assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
     }
 
     function testFactoryAddressZero() public {

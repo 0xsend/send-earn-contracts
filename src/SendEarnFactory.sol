@@ -23,7 +23,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
 
     IMetaMorpho private immutable _META_MORPHO;
 
-    ISendEarn private immutable defaultSendEarn;
+    ISendEarn private immutable _defaultSendEarn;
 
     /* STORAGE */
 
@@ -31,7 +31,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     mapping(address => bool) public isSendEarn;
 
     /// @inheritdoc ISendEarnFactory
-    mapping(address => bool) public affiliates;
+    mapping(address => address) public affiliates;
 
     /// @inheritdoc ISplitConfig
     address public platform;
@@ -47,10 +47,12 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         if (metaMorpho == address(0)) revert Errors.ZeroAddress();
 
         _META_MORPHO = IMetaMorpho(metaMorpho);
+
         // create the default(no affiliate) send earn contract
-        ISendEarn sendEarn = createSendEarn(platform, salt);
+        ISendEarn sendEarn = _createSendEarn(platform, salt);
         isSendEarn[address(sendEarn)] = true;
-        defaultSendEarn = sendEarn;
+        affiliates[address(0)] = address(sendEarn);
+        _defaultSendEarn = sendEarn;
     }
 
     /* OWNER ONLY */
@@ -80,10 +82,28 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         return address(_META_MORPHO);
     }
 
+    /// @inheritdoc ISendEarnFactory
+    function SEND_EARN() external view returns (address) {
+        return address(_defaultSendEarn);
+    }
+
     /* EXTERNAL */
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarn(address feeRecipient, bytes32 salt) public returns (ISendEarn sendEarn) {
+    function createSendEarn(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
+        if (affiliates[referrer] == address(0)) {
+            SendEarnAffiliate affiliate = new SendEarnAffiliate(referrer, address(this), address(_defaultSendEarn));
+            emit Events.NewAffiliate(referrer, address(affiliate));
+            sendEarn = _createSendEarn(address(affiliate), salt);
+            affiliates[referrer] = address(sendEarn);
+        } else {
+            sendEarn = ISendEarn(affiliates[referrer]);
+        }
+    }
+
+    /* INTERNAL */
+
+    function _createSendEarn(address feeRecipient, bytes32 salt) internal returns (ISendEarn sendEarn) {
         sendEarn = ISendEarn(
             address(
                 new SendEarn{salt: salt}(
@@ -112,17 +132,5 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
             platform,
             salt
         );
-    }
-
-    /// @inheritdoc ISendEarnFactory
-    function createSendEarnWithReferrer(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
-        address feeRecipient = platform;
-        if (!affiliates[referrer]) {
-            SendEarnAffiliate affiliate = new SendEarnAffiliate(referrer, address(this), address(defaultSendEarn));
-            affiliates[referrer] = true;
-            emit Events.NewAffiliate(referrer, address(affiliate));
-        }
-        // create the send earn contract
-        sendEarn = createSendEarn(feeRecipient, salt);
     }
 }

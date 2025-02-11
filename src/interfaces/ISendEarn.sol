@@ -55,4 +55,4 @@ interface ISendEarnBase {
 /// @title ISendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault interface allowing users to deposit USDC to earn yield through MetaMorpho
-interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit {}
+interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall {}
