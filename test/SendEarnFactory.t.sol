@@ -168,6 +168,7 @@ contract SendEarnFactoryTest is SendEarnTest {
     }
 
     function testTransferOwnership(address newOwner) public {
+        vm.assume(newOwner != SEND_OWNER);
         vm.expectEmit(address(factory));
         emit OwnershipTransferStarted(SEND_OWNER, newOwner);
         vm.startPrank(SEND_PLATFORM);
