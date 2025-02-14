@@ -1,8 +1,12 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xsend/send-earn-contracts.git"
+  },
   "author": {
     "name": "Send Squad",
     "email": "security@send.it",
