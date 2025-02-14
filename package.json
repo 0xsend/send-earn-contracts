@@ -1,6 +1,6 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.0-20250214210709",
+  "version": "0.0.0-20250214211355",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
   "repository": {
@@ -36,7 +36,8 @@
     "lint:forge": "forge fmt --check",
     "lint:fix": "bun run lint:forge:fix",
     "lint:forge:fix": "forge fmt",
-    "clean": "forge clean"
+    "clean": "forge clean",
+    "release": "bun run build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12"
