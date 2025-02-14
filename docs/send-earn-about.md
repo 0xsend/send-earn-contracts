@@ -36,8 +36,8 @@ graph TD
     J --> K[Platform Fee: 6-8%]
     J --> L[Referral Fee: 0-2%]
 
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style I fill:#bbf,stroke:#333,stroke-width:2px
+    style A fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style I fill:#bbf,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ## Protocol Components
