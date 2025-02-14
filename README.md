@@ -15,7 +15,7 @@ See [docs/send-earn-about.md](docs/send-earn-about.md) for more information.
 git clone https://github.com/0xsend/send-earn-contracts.git
 cd send-earn-contracts
 forge install
-bun install --yarn --frozen-lockfile
+bun install --yarn
 bun run build
 ```
 

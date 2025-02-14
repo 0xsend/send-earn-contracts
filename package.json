@@ -3,9 +3,25 @@
   "version": "0.0.1",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
-  "author": "send.it",
+  "author": {
+    "name": "Send Squad",
+    "email": "security@send.it",
+    "url": "https://send.it"
+  },
   "license": "GPL-2.0-or-later",
   "private": false,
+  "exports": {
+    "./artifacts": "./artifacts"
+  },
+  "files": [
+    "artifacts",
+    "contracts",
+    "docs",
+    "src",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "build": "bun run build:blue && bun run build:forge",
     "build:forge": "forge build",
@@ -20,5 +36,8 @@
     "lint:fix": "bun run lint:forge:fix",
     "lint:forge:fix": "forge fmt",
     "clean": "forge clean"
+  },
+  "dependencies": {
+    "@changesets/cli": "^2.27.12"
   }
 }
