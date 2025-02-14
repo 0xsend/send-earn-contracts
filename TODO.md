@@ -1,10 +1,13 @@
-
 **TODO:**
-- Detail how/where rewards are claimed/accured by the vault
-- Implement affiliates into SendEarnFactory
-- Add custom fee splitter for affiliates
-- Interfaces
-- Documentation
 - Frontend ABI
-- Extensions:
-  - Claim morpho rewards
+- Scripts
+  - Deploy
+  - Operational scripts
+    - Claim morpho rewards
+    - Collect fees
+- Operational documentation
+  - Send Earn Factory as Split Config
+  - Collecting fees from affiliated Send Earn vaults
+  - Claiming morpho rewards
+- User documentation
+  - How to use Send Earn
