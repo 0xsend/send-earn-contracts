@@ -27,7 +27,7 @@ contract PlatformTest is Test {
         platform = new MockPlatform(PLATFORM, OWNER);
     }
 
-    function testSetup() public {
+    function testSetup() public view {
         assertEq(platform.platform(), PLATFORM, "platform");
         assertEq(platform.owner(), OWNER, "owner");
         assertEq(platform.pendingOwner(), address(0), "pendingOwner");
