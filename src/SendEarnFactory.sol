@@ -2,8 +2,7 @@
 pragma solidity 0.8.21;
 
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
-import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
-
+import {IERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
 import {ISendEarnFactory} from "./interfaces/ISendEarnFactory.sol";
 import {ISplitConfig} from "./interfaces/ISplitConfig.sol";
@@ -22,7 +21,7 @@ import {SendEarnAffiliate} from "./SendEarnAffiliate.sol";
 contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /* IMMUTABLES */
 
-    IMetaMorpho private immutable _META_MORPHO;
+    IERC4626 private immutable _vault;
 
     ISendEarn private immutable _defaultSendEarn;
 
@@ -46,14 +45,14 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /* CONSTRUCTOR */
 
     /// @dev Initializes the contract.
-    /// @param metaMorpho The address of the MetaMorpho contract.
-    constructor(address owner, address metaMorpho, address _platform, uint96 _fee, uint256 _split, bytes32 salt)
+    /// @param vault The address of the underlying vault contract.
+    constructor(address owner, address vault, address _platform, uint96 _fee, uint256 _split, bytes32 salt)
         Ownable(owner)
     {
-        if (metaMorpho == address(0)) revert Errors.ZeroAddress();
+        if (vault == address(0)) revert Errors.ZeroAddress();
         if (_platform == address(0)) revert Errors.ZeroAddress();
 
-        _META_MORPHO = IMetaMorpho(metaMorpho);
+        _vault = IERC4626(vault);
         _setPlatform(_platform);
         _setFee(_fee);
         _setSplit(_split);
@@ -85,8 +84,8 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /* EXTERNAL */
 
     /// @inheritdoc ISendEarnFactory
-    function META_MORPHO() public view returns (address) {
-        return address(_META_MORPHO);
+    function VAULT() public view returns (address) {
+        return address(_vault);
     }
 
     /// @inheritdoc ISendEarnFactory
@@ -114,10 +113,10 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
             address(
                 new SendEarn{salt: salt}(
                     owner(),
-                    META_MORPHO(),
-                    _META_MORPHO.asset(),
-                    string.concat("Send Earn: ", _META_MORPHO.name()),
-                    string.concat("se", _META_MORPHO.symbol()),
+                    VAULT(),
+                    _vault.asset(),
+                    string.concat("Send Earn: ", _vault.name()),
+                    string.concat("se", _vault.symbol()),
                     feeRecipient,
                     platform,
                     fee
@@ -127,9 +126,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
 
         isSendEarn[address(sendEarn)] = true;
 
-        emit Events.CreateSendEarn(
-            address(sendEarn), msg.sender, owner(), META_MORPHO(), feeRecipient, platform, fee, salt
-        );
+        emit Events.CreateSendEarn(address(sendEarn), msg.sender, owner(), VAULT(), feeRecipient, platform, fee, salt);
     }
 
     function _setFee(uint256 newFee) internal {

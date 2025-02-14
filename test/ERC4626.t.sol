@@ -5,6 +5,7 @@ import {IMorphoFlashLoanCallback} from "morpho-blue/interfaces/IMorphoCallbacks.
 import {IERC20Errors} from "openzeppelin-contracts/interfaces/draft-IERC6093.sol";
 import "./helpers/SendEarn.t.sol";
 
+/// @notice ERC4626 vault allowing users to deposit assets to earn yield through MetaMorpho as an underlying vault.
 contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
     using MorphoBalancesLib for IMorpho;
     using MarketParamsLib for MarketParams;

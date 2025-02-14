@@ -3,7 +3,6 @@ pragma solidity >=0.5.0;
 
 import {IERC4626} from "openzeppelin-contracts/interfaces/IERC4626.sol";
 import {IERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {IFeeConfig} from "./IFeeConfig.sol";
 
 interface IMulticall {
@@ -19,8 +18,8 @@ interface IOwnable {
 }
 
 interface ISendEarnBase {
-    /// @notice The MetaMorpho vault contract
-    function META_MORPHO() external view returns (IMetaMorpho);
+    /// @notice The underlying vault contract
+    function VAULT() external view returns (IERC4626);
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation
     function DECIMALS_OFFSET() external view returns (uint8);
@@ -49,5 +48,5 @@ interface ISendEarnBase {
 
 /// @title ISendEarn
 /// @author Send Squad
-/// @notice ERC4626 vault interface allowing users to deposit USDC to earn yield through MetaMorpho
+/// @notice ERC4626 vault interface allowing users to deposit assets to earn yield through an underlying vault
 interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall, IFeeConfig {}

@@ -35,7 +35,7 @@ contract SendEarnFactoryTest is SendEarnTest {
 
         ISendEarn sendEarn = ISendEarn(factory.SEND_EARN());
         assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
-        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(address(sendEarn.VAULT()), address(vault), "SEND_EARN VAULT");
         assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
         assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
         assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
@@ -84,7 +84,7 @@ contract SendEarnFactoryTest is SendEarnTest {
         assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
 
         assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
-        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(address(sendEarn.VAULT()), address(vault), "SEND_EARN VAULT");
         assertEq(sendEarn.feeRecipient(), affiliateExpectedAddress, "SEND_EARN feeRecipient");
         assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
         assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
@@ -99,7 +99,7 @@ contract SendEarnFactoryTest is SendEarnTest {
 
         assertEq(address(sendEarn), address(factory.SEND_EARN()), "factory.SEND_EARN");
         assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
-        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(address(sendEarn.VAULT()), address(vault), "SEND_EARN VAULT");
         assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
         assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
         assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");

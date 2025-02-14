@@ -7,6 +7,7 @@ import {Events} from "../src/lib/Events.sol";
 uint256 constant MORPHO_FEE = 0.2 ether; // 20%
 uint256 constant SEND_FEE = 0.1 ether; // 10%
 
+/// @notice ERC4626 vault allowing users to deposit assets to earn yield through MetaMorpho as an underlying vault.
 contract FeesTest is SendEarnTest {
     using Math for uint256;
     using MathLib for uint256;

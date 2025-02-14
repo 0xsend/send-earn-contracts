@@ -22,14 +22,14 @@ library Events {
     event SetPlatform(address indexed newPlatform);
     /// @notice Emitted when the affiliate pays out the earnings.
     /// @param caller The caller of the function.
-    /// @param sendEarnVault The address of the SendEarn vault.
+    /// @param vault The address of the vault where the earnings came from.
     /// @param asset The address of the underlying asset.
     /// @param amount The total amount of tokens paid out to the platform and affiliate.
     /// @param platformSplit The portion of tokens paid out to the platform.
     /// @param affiliateSplit The portion of tokens paid out to the affiliate.
     event AffiliatePay(
         address indexed caller,
-        address indexed sendEarnVault,
+        address indexed vault,
         address indexed asset,
         uint256 amount,
         uint256 platformSplit,
@@ -38,7 +38,7 @@ library Events {
     /// @notice Emitted when a new SendEarn vault is created.
     /// @param sendEarn The address of the SendEarn vault.
     /// @param caller The caller of the function.
-    /// @param metaMorpho The address of the MetaMorpho contract.
+    /// @param vault The address of the underlying vault.
     /// @param initialOwner The initial owner of the SendEarn vault.
     /// @param feeRecipient The address of the fee recipient.
     /// @param collections The address of the collections.
@@ -48,7 +48,7 @@ library Events {
         address indexed sendEarn,
         address indexed caller,
         address initialOwner,
-        address indexed metaMorpho,
+        address indexed vault,
         address feeRecipient,
         address collections,
         uint96 fee,

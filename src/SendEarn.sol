@@ -6,7 +6,6 @@ import {WAD} from "morpho-blue/libraries/MathLib.sol";
 import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
-import {IMetaMorpho, IMorpho, Id, MarketParams} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {ERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {
@@ -29,7 +28,7 @@ import {IFeeConfig} from "./interfaces/IFeeConfig.sol";
 
 /// @title SendEarn
 /// @author Send Squad
-/// @notice ERC4626 vault allowing users to deposit USDC to earn yield through MetaMorpho
+/// @notice ERC4626 vault allowing users to deposit assets to earn yield through an underlying vault
 contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall, IFeeConfig {
     using Math for uint256;
     using SafeERC20 for IERC20;
@@ -37,8 +36,8 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
 
     /* IMMUTABLES */
 
-    /// @notice The MetaMorpho vault contract
-    IMetaMorpho public immutable META_MORPHO;
+    /// @notice The underlying vault contract
+    IERC4626 public immutable VAULT;
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation
     uint8 public immutable DECIMALS_OFFSET;
@@ -61,7 +60,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
 
     constructor(
         address owner,
-        address metaMorpho,
+        address vault,
         address asset,
         string memory _name,
         string memory _symbol,
@@ -69,7 +68,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         address _collections,
         uint96 _fee
     ) ERC4626(IERC20(asset)) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(owner) {
-        if (metaMorpho == address(0)) revert Errors.ZeroAddress();
+        if (vault == address(0)) revert Errors.ZeroAddress();
         if (_feeRecipient != address(0)) feeRecipient = _feeRecipient;
         if (_collections != address(0)) collections = _collections;
         if (_fee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
@@ -77,10 +76,10 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
             revert Errors.ZeroFeeRecipient();
         }
         fee = _fee;
-        META_MORPHO = IMetaMorpho(metaMorpho);
+        VAULT = IERC4626(vault);
         DECIMALS_OFFSET = uint8(uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals()));
 
-        IERC20(asset).forceApprove(metaMorpho, type(uint256).max);
+        IERC20(asset).forceApprove(vault, type(uint256).max);
     }
 
     /* OWNER ONLY */
@@ -227,8 +226,8 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
 
     /// @inheritdoc IERC4626
     function totalAssets() public view override returns (uint256 assets) {
-        // Returns the total assets held in the Meta Morpho vault (with interest)
-        assets = META_MORPHO.convertToAssets(META_MORPHO.balanceOf(address(this)));
+        // Returns the total assets held in the underlying vault (with interest)
+        assets = VAULT.convertToAssets(VAULT.balanceOf(address(this)));
     }
 
     /* ERC4626 (INTERNAL) */
@@ -250,16 +249,14 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         newTotalSupply = totalSupply() + feeShares;
 
         assets = _convertToAssetsWithTotals(balanceOf(owner), newTotalSupply, newTotalAssets, Math.Rounding.Floor);
-        // we differ from the metamorpho implementation here
-        // since we are not withdrawing from morpho directly
-        // but from the metamorpho vault
-        // assets -= _simulateWithdrawMorpho(assets);
-        assets = UtilsLib.min(assets, META_MORPHO.maxWithdraw(address(this)));
+
+        // can never withdraw more than the underlying vault can withdraw
+        assets = UtilsLib.min(assets, VAULT.maxWithdraw(address(this)));
     }
 
-    /// @dev Returns the maximum amount of assets that the vault can supply on MetaMorpho.
+    /// @dev Returns the maximum amount of assets that the vault can supply on the underlying vault.
     function _maxDeposit() internal view returns (uint256 totalSuppliable) {
-        return META_MORPHO.maxDeposit(address(this));
+        return VAULT.maxDeposit(address(this));
     }
 
     /// @inheritdoc ERC4626
@@ -299,18 +296,18 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
     }
 
     /// @inheritdoc ERC4626
-    /// @dev Used in mint or deposit to deposit the underlying asset to Morpho markets.
+    /// @dev Used in mint or deposit to deposit the underlying asset
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         super._deposit(caller, receiver, assets, shares);
 
-        META_MORPHO.deposit(assets, address(this));
+        VAULT.deposit(assets, address(this));
 
         // `lastTotalAssets + assets` may be a little off from `totalAssets()`.
         _updateLastTotalAssets(lastTotalAssets + assets);
     }
 
     /// @inheritdoc ERC4626
-    /// @dev Used in redeem or withdraw to withdraw the underlying asset from Morpho markets.
+    /// @dev Used in redeem or withdraw to withdraw the underlying asset from the underlying vault.
     /// @dev Depending on 3 cases, reverts when withdrawing "too much" with:
     /// 1. NotEnoughLiquidity when withdrawing more than available liquidity.
     /// 2. ERC20InsufficientAllowance when withdrawing more than `caller`'s allowance.
@@ -319,7 +316,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         internal
         override
     {
-        META_MORPHO.withdraw(assets, address(this), address(this));
+        VAULT.withdraw(assets, address(this), address(this));
 
         super._withdraw(caller, receiver, owner, assets, shares);
     }
