@@ -25,11 +25,12 @@ import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
 import {ISendEarnBase} from "./interfaces/ISendEarn.sol";
+import {IFeeConfig} from "./interfaces/IFeeConfig.sol";
 
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit USDC to earn yield through MetaMorpho
-contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall {
+contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall, IFeeConfig {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using UtilsLib for uint256;
@@ -45,7 +46,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
     /* STORAGE */
 
     /// @notice the current fee
-    uint96 public fee;
+    uint96 public override fee;
 
     /// @notice The fee recipient
     address public feeRecipient;
@@ -65,11 +66,17 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         string memory _name,
         string memory _symbol,
         address _feeRecipient,
-        address _collections
+        address _collections,
+        uint96 _fee
     ) ERC4626(IERC20(asset)) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(owner) {
         if (metaMorpho == address(0)) revert Errors.ZeroAddress();
         if (_feeRecipient != address(0)) feeRecipient = _feeRecipient;
         if (_collections != address(0)) collections = _collections;
+        if (_fee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
+        if (_fee != 0 && _feeRecipient == address(0)) {
+            revert Errors.ZeroFeeRecipient();
+        }
+        fee = _fee;
         META_MORPHO = IMetaMorpho(metaMorpho);
         DECIMALS_OFFSET = uint8(uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals()));
 
@@ -78,7 +85,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
 
     /* OWNER ONLY */
 
-    /// @inheritdoc ISendEarnBase
+    /// @inheritdoc IFeeConfig
     function setFee(uint256 newFee) external onlyOwner {
         if (newFee == fee) revert Errors.AlreadySet();
         if (newFee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();

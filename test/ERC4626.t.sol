@@ -26,7 +26,8 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
             string.concat("Send Earn: ", vault.name()),
             string.concat("se", vault.symbol()),
             address(0),
-            address(0)
+            address(0),
+            0
         );
 
         assertEq(sevault.decimals(), Math.max(18, decimals), "decimals");

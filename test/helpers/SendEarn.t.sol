@@ -23,7 +23,8 @@ contract SendEarnTest is IntegrationTest {
             string.concat("Send Earn: ", vault.name()),
             string.concat("se", vault.symbol()),
             SEND_FEE_RECIPIENT,
-            SEND_COLLECTIONS
+            SEND_COLLECTIONS,
+            0
         );
 
         loanToken.approve(address(sevault), type(uint256).max);

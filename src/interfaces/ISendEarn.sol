@@ -4,6 +4,7 @@ pragma solidity >=0.5.0;
 import {IERC4626} from "openzeppelin-contracts/interfaces/IERC4626.sol";
 import {IERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
+import {IFeeConfig} from "./IFeeConfig.sol";
 
 interface IMulticall {
     function multicall(bytes[] calldata) external returns (bytes[] memory);
@@ -24,9 +25,6 @@ interface ISendEarnBase {
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation
     function DECIMALS_OFFSET() external view returns (uint8);
 
-    /// @notice The current fee
-    function fee() external view returns (uint96);
-
     /// @notice The fee recipient
     function feeRecipient() external view returns (address);
 
@@ -42,9 +40,6 @@ interface ISendEarnBase {
     /// @notice Sets the collections address
     function setCollections(address newCollections) external;
 
-    /// @notice Sets the fee
-    function setFee(uint256 newFee) external;
-
     /// @notice Accrues the fee and mints fee shares to the fee recipient
     function accrueFee() external;
 
@@ -55,4 +50,4 @@ interface ISendEarnBase {
 /// @title ISendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault interface allowing users to deposit USDC to earn yield through MetaMorpho
-interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall {}
+interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall, IFeeConfig {}

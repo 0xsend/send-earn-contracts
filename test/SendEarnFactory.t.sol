@@ -7,7 +7,10 @@ import {SendEarnFactory} from "../src/SendEarnFactory.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
 import {Constants} from "../src/lib/Constants.sol";
+import {Create2} from "openzeppelin-contracts/utils/Create2.sol";
 
+uint96 constant FEE = 0.08 ether; // 8%
+uint256 constant SPLIT = 0.75 ether; // 75%
 bytes32 constant SALT = bytes32(uint256(1));
 
 contract SendEarnFactoryTest is SendEarnTest {
@@ -15,11 +18,7 @@ contract SendEarnFactoryTest is SendEarnTest {
 
     function setUp() public override {
         super.setUp();
-        factory = new SendEarnFactory(SEND_OWNER, address(vault), SALT);
-
-        vm.startPrank(SEND_OWNER);
-        factory.setPlatform(SEND_PLATFORM);
-        vm.stopPrank();
+        factory = new SendEarnFactory(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT);
     }
 
     function testDefaultSendEarnIsCreated() public {
@@ -34,13 +33,59 @@ contract SendEarnFactoryTest is SendEarnTest {
         ISendEarn sendEarn = ISendEarn(factory.SEND_EARN());
         assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
         assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
-        // TODO: share fee recipient with factory and send eanr vaults
-        // assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
+        assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
+        assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
+        assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
+    }
+
+    function testCreateSendEarnWithReferrer(address referrer, bytes32 salt) public {
+        vm.assume(referrer != address(0));
+
+        // TODO: fix
+        // vm.expectEmit(address(factory));
+        // emit Events.NewAffiliate(referrer, address(factory.SEND_EARN()));
+        // emit Events.CreateSendEarn(
+        //     address(sendEarn),
+        //     SEND_OWNER,
+        //     address(vault),
+        //     vault.asset(),
+        //     string.concat("Send Earn: ", vault.name()),
+        //     string.concat("se", vault.symbol()),
+        //     SEND_PLATFORM,
+        //     SEND_PLATFORM,
+        //     uint96(FEE),
+        //     salt
+        // );
+
+        ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
+
+        assertEq(factory.isSendEarn(address(sendEarn)), true, "isSendEarn");
+        assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
+        ISendEarn sendEarn2 = ISendEarn(factory.SEND_EARN());
+        assertEq(sendEarn2.owner(), SEND_OWNER, "SEND_EARN owner");
+        assertEq(address(sendEarn2.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(sendEarn2.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
+        assertEq(sendEarn2.collections(), SEND_PLATFORM, "SEND_EARN collections");
+        assertEq(sendEarn2.fee(), FEE, "SEND_EARN fee");
     }
 
     function testFactoryAddressZero() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnFactory(SEND_OWNER, address(0), SALT);
+        new SendEarnFactory(SEND_OWNER, address(0), SEND_PLATFORM, FEE, SPLIT, SALT);
+        vm.expectRevert(Errors.ZeroAddress.selector);
+        new SendEarnFactory(SEND_OWNER, address(vault), address(0), FEE, SPLIT, SALT);
+    }
+
+    function testSetFee(uint256 newFee) public {
+        newFee = bound(newFee, 0, Constants.MAX_FEE);
+        vm.assume(newFee != factory.fee());
+
+        vm.expectEmit(address(factory));
+        emit Events.SetFee(SEND_OWNER, newFee);
+        vm.prank(SEND_OWNER);
+        factory.setFee(newFee);
+
+        assertEq(factory.fee(), newFee, "fee");
     }
 
     function testSetPlatform(address newPlatform) public {

@@ -3,9 +3,10 @@ pragma solidity 0.8.21;
 
 import {ISendEarn} from "./ISendEarn.sol";
 import {ISplitConfig} from "./ISplitConfig.sol";
+import {IFeeConfig} from "./IFeeConfig.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
-interface ISendEarnFactory is ISplitConfig {
+interface ISendEarnFactory is ISplitConfig, IFeeConfig {
     /// @notice The MetaMorpho contract that SendEarn vaults uses.
     function META_MORPHO() external view returns (address);
 
