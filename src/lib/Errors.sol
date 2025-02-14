@@ -19,4 +19,6 @@ library Errors {
     error ZeroAmount();
     /// @notice Thrown when there is an asset mismatch
     error AssetMismatch();
+    /// @notice Thrown when the sender is not the platform
+    error UnauthorizedPlatform();
 }

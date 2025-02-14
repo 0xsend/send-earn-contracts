@@ -27,6 +27,9 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
 
     /* STORAGE */
 
+    /// @notice The new pending owner when transfering ownership
+    address private _pendingOwner;
+
     /// @inheritdoc ISendEarnFactory
     mapping(address => bool) public isSendEarn;
 
@@ -72,11 +75,6 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     }
 
     /// @inheritdoc ISendEarnFactory
-    function setPlatform(address newPlatform) public onlyOwner {
-        _setPlatform(newPlatform);
-    }
-
-    /// @inheritdoc ISendEarnFactory
     function setSplit(uint256 newSplit) public onlyOwner {
         _setSplit(newSplit);
     }
@@ -104,6 +102,36 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         } else {
             sendEarn = ISendEarn(affiliates[referrer]);
         }
+    }
+
+    /* OWNABLE2 AND PLATFORM ONLY */
+
+    /// @notice Only the platform can call this function
+    /// @inheritdoc ISendEarnFactory
+    function setPlatform(address newPlatform) external onlyPlatform {
+        _setPlatform(newPlatform);
+    }
+
+    /// @notice Only the platform can call this function
+    /// @inheritdoc Ownable2Step
+    function transferOwnership(address newOwner) public virtual override onlyPlatform {
+        _pendingOwner = newOwner;
+        emit Events.OwnershipTransferStarted(owner(), newOwner);
+    }
+
+    /// @inheritdoc Ownable2Step
+    function pendingOwner() public view virtual override returns (address) {
+        return _pendingOwner;
+    }
+
+    /// @inheritdoc Ownable2Step
+    function acceptOwnership() public virtual override {
+        address sender = _msgSender();
+        if (pendingOwner() != sender) {
+            revert OwnableUnauthorizedAccount(sender);
+        }
+        delete _pendingOwner;
+        super._transferOwnership(sender);
     }
 
     /* INTERNAL */
@@ -158,5 +186,12 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         platform = newPlatform;
 
         emit Events.SetPlatform(newPlatform);
+    }
+
+    /* MODIFIERS */
+
+    modifier onlyPlatform() {
+        if (_msgSender() != platform) revert Errors.UnauthorizedPlatform();
+        _;
     }
 }

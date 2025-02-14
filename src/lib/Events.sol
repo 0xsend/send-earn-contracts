@@ -18,6 +18,8 @@ library Events {
     event UpdateLastTotalAssets(uint256 updatedTotalAssets);
     /// @notice Emitted when the affiliate address is set to `newAffiliate`.
     event SetAffiliate(address indexed newAffiliate);
+    /// @notice Emitted when the pending owner is set to `newOwner`.
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     /// @notice Emitted when the platform address is set to `newPlatform`.
     event SetPlatform(address indexed newPlatform);
     /// @notice Emitted when the affiliate pays out the earnings.

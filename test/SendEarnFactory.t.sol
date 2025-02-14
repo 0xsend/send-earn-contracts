@@ -17,6 +17,10 @@ bytes32 constant SALT = bytes32(uint256(1));
 contract SendEarnFactoryTest is SendEarnTest {
     SendEarnFactory factory;
 
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public override {
         super.setUp();
         factory = new SendEarnFactory(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT);
@@ -127,15 +131,20 @@ contract SendEarnFactoryTest is SendEarnTest {
     function testSetPlatform(address newPlatform) public {
         vm.assume(newPlatform != address(0));
         vm.assume(newPlatform != SEND_PLATFORM);
-        vm.startPrank(SEND_OWNER);
+        vm.startPrank(SEND_PLATFORM);
         vm.expectEmit(address(factory));
         emit Events.SetPlatform(newPlatform);
         factory.setPlatform(newPlatform);
         assertEq(factory.platform(), newPlatform, "platform");
     }
 
+    function testSetPlatformUnauthorized() public {
+        vm.expectRevert(Errors.UnauthorizedPlatform.selector);
+        factory.setPlatform(SEND_PLATFORM);
+    }
+
     function testSetPlatformZeroAddress() public {
-        vm.startPrank(SEND_OWNER);
+        vm.startPrank(SEND_PLATFORM);
         vm.expectRevert(Errors.ZeroAddress.selector);
         factory.setPlatform(address(0));
     }
@@ -155,5 +164,46 @@ contract SendEarnFactoryTest is SendEarnTest {
         uint256 newSplit = Constants.SPLIT_TOTAL + 1;
         vm.expectRevert(Errors.MaxSplitExceeded.selector);
         factory.setSplit(newSplit);
+    }
+
+    function testTransferOwnership(address newOwner) public {
+        vm.expectEmit(address(factory));
+        emit OwnershipTransferStarted(SEND_OWNER, newOwner);
+        vm.startPrank(SEND_PLATFORM);
+        factory.transferOwnership(newOwner);
+        vm.stopPrank();
+
+        assertEq(factory.pendingOwner(), newOwner, "pendingOwner");
+
+        vm.startPrank(newOwner);
+        factory.acceptOwnership();
+
+        assertEq(factory.owner(), newOwner, "owner");
+        assertEq(factory.pendingOwner(), address(0), "pendingOwner");
+    }
+
+    function testTransferOwnershipZeroAddress() public {
+        vm.startPrank(SEND_PLATFORM);
+        factory.transferOwnership(address(0));
+        vm.stopPrank();
+        assertEq(factory.pendingOwner(), address(0), "pendingOwner");
+    }
+
+    function testTransferOwnershipUnauthorized() public {
+        vm.startPrank(SEND_OWNER);
+        vm.expectRevert(Errors.UnauthorizedPlatform.selector);
+        factory.transferOwnership(SEND_PLATFORM);
+        vm.stopPrank();
+
+        address newOwner = makeAddr("newOwner");
+        vm.startPrank(SEND_PLATFORM);
+        factory.transferOwnership(newOwner);
+        vm.stopPrank();
+
+        assertEq(factory.pendingOwner(), newOwner, "pendingOwner");
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, OWNER));
+        factory.acceptOwnership();
     }
 }
