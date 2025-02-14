@@ -50,6 +50,7 @@ abstract contract Platform is IPlatform, Ownable {
     /// @notice Only the platform can call this function
     /// @inheritdoc IPlatform
     function setPlatform(address newPlatform) external onlyPlatform {
+        if (newPlatform == platform()) revert Errors.AlreadySet();
         _setPlatform(newPlatform);
         emit Events.SetPlatform(newPlatform);
     }
@@ -62,6 +63,7 @@ abstract contract Platform is IPlatform, Ownable {
      * Setting `newOwner` to the zero address is allowed; this can be used to cancel an initiated ownership transfer.
      */
     function transferOwnership(address newOwner) public virtual override onlyPlatform {
+        if (newOwner == owner()) revert Errors.AlreadySet();
         _pendingOwner = newOwner;
         emit Events.OwnershipTransferStarted(owner(), newOwner);
     }
