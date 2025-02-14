@@ -21,6 +21,7 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
         vm.mockCall(address(loanToken), abi.encodeWithSignature("decimals()"), abi.encode(decimals));
 
         sevault = new SendEarn(
+            SEND_PLATFORM,
             SEND_OWNER,
             address(vault),
             address(loanToken),

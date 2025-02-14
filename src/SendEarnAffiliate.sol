@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
-import {ISendEarnAffiliate, ISplitConfig} from "./interfaces/ISendEarnAffiliate.sol";
+import {ISendEarnAffiliate, IPartnerSplitConfig} from "./interfaces/ISendEarnAffiliate.sol";
 import {IERC20, IERC4626, Math, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
@@ -18,7 +18,7 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
     /* IMMUTABLES */
 
     /// @inheritdoc ISendEarnAffiliate
-    ISplitConfig public immutable override splitConfig;
+    IPartnerSplitConfig public immutable override splitConfig;
 
     /// @inheritdoc ISendEarnAffiliate
     address public immutable override affiliate;
@@ -33,7 +33,7 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         if (_splitConfig == address(0)) revert Errors.ZeroAddress();
         if (_payVault == address(0)) revert Errors.ZeroAddress();
         affiliate = _affiliate;
-        splitConfig = ISplitConfig(_splitConfig);
+        splitConfig = IPartnerSplitConfig(_splitConfig);
         payVault = IERC4626(_payVault);
         IERC20 asset = IERC20(payVault.asset());
         asset.forceApprove(_payVault, type(uint256).max);

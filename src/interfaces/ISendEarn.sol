@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
+import {IOwnable} from "./IOwnable.sol";
 import {IERC4626} from "openzeppelin-contracts/interfaces/IERC4626.sol";
 import {IERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IFeeConfig} from "./IFeeConfig.sol";
 
 interface IMulticall {
     function multicall(bytes[] calldata) external returns (bytes[] memory);
-}
-
-interface IOwnable {
-    function owner() external view returns (address);
-    function transferOwnership(address) external;
-    function renounceOwnership() external;
-    function acceptOwnership() external;
-    function pendingOwner() external view returns (address);
 }
 
 interface ISendEarnBase {

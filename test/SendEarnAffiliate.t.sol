@@ -5,14 +5,14 @@ import {Events} from "../src/lib/Events.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Constants} from "../src/lib/Constants.sol";
 import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
-import {ISplitConfig} from "../src/interfaces/ISendEarnAffiliate.sol";
+import {IPartnerSplitConfig} from "../src/interfaces/ISendEarnAffiliate.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
 
 import {SendEarnTest, Math, ERC20Mock, BLOCK_TIME, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
 import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 
-contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
+contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
     using Math for uint256;
     using UtilsLib for uint256;
 
@@ -32,7 +32,7 @@ contract SendEarnAffiliateTest is SendEarnTest, ISplitConfig {
         loanToken.approve(address(affiliateVault), type(uint256).max);
     }
 
-    /* ISplitConfig */
+    /* IPartnerSplitConfig */
 
     function platform() external view returns (address) {
         return PLATFORM;

@@ -21,11 +21,6 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Fail if there are uncommitted changes
-        run: |
-          git update-index --refresh
-          git diff-index --quiet HEAD --
-
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc

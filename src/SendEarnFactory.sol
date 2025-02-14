@@ -12,13 +12,14 @@ import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
 import {SendEarn} from "./SendEarn.sol";
+import {Platform} from "./Platform.sol";
 import {SendEarnAffiliate} from "./SendEarnAffiliate.sol";
 
 /// @title SendEarnFactory
 /// @author Send Squad
 /// @custom:contact security@send.it
 /// @notice This contract allows to create SendEarn vaults with a referrer and to index them easily.
-contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
+contract SendEarnFactory is ISendEarnFactory, Platform {
     /* IMMUTABLES */
 
     IERC4626 private immutable _vault;
@@ -26,9 +27,6 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     ISendEarn private immutable _defaultSendEarn;
 
     /* STORAGE */
-
-    /// @notice The new pending owner when transfering ownership
-    address private _pendingOwner;
 
     /// @inheritdoc ISendEarnFactory
     mapping(address => bool) public isSendEarn;
@@ -40,9 +38,6 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     uint96 public override fee;
 
     /// @inheritdoc ISplitConfig
-    address public platform;
-
-    /// @inheritdoc ISplitConfig
     uint256 public split;
 
     /* CONSTRUCTOR */
@@ -50,18 +45,17 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /// @dev Initializes the contract.
     /// @param vault The address of the underlying vault contract.
     constructor(address owner, address vault, address _platform, uint96 _fee, uint256 _split, bytes32 salt)
+        Platform(_platform)
         Ownable(owner)
     {
         if (vault == address(0)) revert Errors.ZeroAddress();
-        if (_platform == address(0)) revert Errors.ZeroAddress();
 
         _vault = IERC4626(vault);
-        _setPlatform(_platform);
         _setFee(_fee);
         _setSplit(_split);
 
         // create the default(no affiliate) send earn contract
-        ISendEarn sendEarn = _createSendEarn(platform, salt);
+        ISendEarn sendEarn = _createSendEarn(platform(), salt);
         isSendEarn[address(sendEarn)] = true;
         affiliates[address(0)] = address(sendEarn);
         _defaultSendEarn = sendEarn;
@@ -104,49 +98,20 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         }
     }
 
-    /* OWNABLE2 AND PLATFORM ONLY */
-
-    /// @notice Only the platform can call this function
-    /// @inheritdoc ISendEarnFactory
-    function setPlatform(address newPlatform) external onlyPlatform {
-        _setPlatform(newPlatform);
-    }
-
-    /// @notice Only the platform can call this function
-    /// @inheritdoc Ownable2Step
-    function transferOwnership(address newOwner) public virtual override onlyPlatform {
-        _pendingOwner = newOwner;
-        emit Events.OwnershipTransferStarted(owner(), newOwner);
-    }
-
-    /// @inheritdoc Ownable2Step
-    function pendingOwner() public view virtual override returns (address) {
-        return _pendingOwner;
-    }
-
-    /// @inheritdoc Ownable2Step
-    function acceptOwnership() public virtual override {
-        address sender = _msgSender();
-        if (pendingOwner() != sender) {
-            revert OwnableUnauthorizedAccount(sender);
-        }
-        delete _pendingOwner;
-        super._transferOwnership(sender);
-    }
-
     /* INTERNAL */
 
     function _createSendEarn(address feeRecipient, bytes32 salt) internal returns (ISendEarn sendEarn) {
         sendEarn = ISendEarn(
             address(
                 new SendEarn{salt: salt}(
+                    platform(),
                     owner(),
                     VAULT(),
                     _vault.asset(),
                     string.concat("Send Earn: ", _vault.name()),
                     string.concat("se", _vault.symbol()),
                     feeRecipient,
-                    platform,
+                    platform(),
                     fee
                 )
             )
@@ -154,13 +119,13 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
 
         isSendEarn[address(sendEarn)] = true;
 
-        emit Events.CreateSendEarn(address(sendEarn), msg.sender, owner(), VAULT(), feeRecipient, platform, fee, salt);
+        emit Events.CreateSendEarn(address(sendEarn), msg.sender, owner(), VAULT(), feeRecipient, platform(), fee, salt);
     }
 
     function _setFee(uint256 newFee) internal {
         if (newFee == fee) revert Errors.AlreadySet();
         if (newFee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
-        if (newFee != 0 && platform == address(0)) {
+        if (newFee != 0 && platform() == address(0)) {
             revert Errors.ZeroFeeRecipient();
         }
 
@@ -177,21 +142,5 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         split = newSplit;
 
         emit Events.SetSplit(newSplit);
-    }
-
-    function _setPlatform(address newPlatform) internal {
-        if (newPlatform == platform) revert Errors.AlreadySet();
-        if (newPlatform == address(0)) revert Errors.ZeroAddress();
-
-        platform = newPlatform;
-
-        emit Events.SetPlatform(newPlatform);
-    }
-
-    /* MODIFIERS */
-
-    modifier onlyPlatform() {
-        if (_msgSender() != platform) revert Errors.UnauthorizedPlatform();
-        _;
     }
 }

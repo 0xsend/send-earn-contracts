@@ -25,11 +25,12 @@ import {Errors} from "./lib/Errors.sol";
 import {Constants} from "./lib/Constants.sol";
 import {ISendEarnBase} from "./interfaces/ISendEarn.sol";
 import {IFeeConfig} from "./interfaces/IFeeConfig.sol";
+import {Platform} from "./Platform.sol";
 
 /// @title SendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault allowing users to deposit assets to earn yield through an underlying vault
-contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multicall, IFeeConfig {
+contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, IFeeConfig {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using UtilsLib for uint256;
@@ -59,6 +60,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
     /* CONSTRUCTOR */
 
     constructor(
+        address _platform,
         address owner,
         address vault,
         address asset,
@@ -67,7 +69,7 @@ contract SendEarn is ERC4626, ERC20Permit, Ownable2Step, ISendEarnBase, Multical
         address _feeRecipient,
         address _collections,
         uint96 _fee
-    ) ERC4626(IERC20(asset)) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(owner) {
+    ) ERC4626(IERC20(asset)) ERC20Permit(_name) ERC20(_name, _symbol) Platform(_platform) Ownable(owner) {
         if (vault == address(0)) revert Errors.ZeroAddress();
         if (_feeRecipient != address(0)) feeRecipient = _feeRecipient;
         if (_collections != address(0)) collections = _collections;

@@ -2,11 +2,11 @@
 pragma solidity >=0.5.0;
 
 import {IERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
-import {ISplitConfig} from "./ISplitConfig.sol";
+import {IPartnerSplitConfig} from "./ISplitConfig.sol";
 
 interface ISendEarnAffiliate {
     /// @notice The address of the affiliate split config.
-    function splitConfig() external view returns (ISplitConfig);
+    function splitConfig() external view returns (IPartnerSplitConfig);
     /// @notice The address of the affiliate receiving the earnings.
     function affiliate() external view returns (address);
     /// @notice The address of the vault that earnings are paid to on behalf of the affiliate and platform.

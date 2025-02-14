@@ -17,6 +17,7 @@ contract SendEarnTest is IntegrationTest {
     function setUp() public virtual override {
         super.setUp();
         sevault = new SendEarn(
+            SEND_PLATFORM,
             SEND_OWNER,
             address(vault),
             address(loanToken),

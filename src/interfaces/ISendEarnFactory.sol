@@ -15,9 +15,6 @@ interface ISendEarnFactory is ISplitConfig, IFeeConfig {
     /// @notice Tracks existing SendEarn contracts where the affiliate is sharing the fees.
     function affiliates(address) external view returns (address);
 
-    /// @notice Sets the address of the platform that receives Send Earn fees
-    function setPlatform(address newPlatform) external;
-
     /// @notice Sets the split to the referrer.
     function setSplit(uint256 newSplit) external;
 

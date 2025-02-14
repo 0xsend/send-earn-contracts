@@ -56,6 +56,7 @@ contract SendEarnFactoryTest is SendEarnTest {
         bytes32 sendEarnInitCodeHash = hashInitCode(
             type(SendEarn).creationCode,
             abi.encode(
+                SEND_PLATFORM,
                 SEND_OWNER,
                 address(vault),
                 address(loanToken),
