@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
+import {Events} from "../src/lib/Events.sol";
 import "./helpers/SendEarn.t.sol";
 
 contract RewardsTest is SendEarnTest {
@@ -17,8 +18,11 @@ contract RewardsTest is SendEarnTest {
     }
 
     function testClaimRewards(uint256 amount) public {
+        // this would be a call to Universal Rewards Distributor
         rewards1Token.setBalance(address(sevault), amount);
 
+        vm.expectEmit(address(sevault));
+        emit Events.Collect(address(this), address(rewards1Token), amount);
         sevault.collect(address(rewards1Token));
 
         assertEq(rewards1Token.balanceOf(address(sevault)), 0);

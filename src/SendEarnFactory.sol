@@ -97,7 +97,8 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
     /// @inheritdoc ISendEarnFactory
     function createSendEarn(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
         if (affiliates[referrer] == address(0)) {
-            SendEarnAffiliate affiliate = new SendEarnAffiliate(referrer, address(this), address(_defaultSendEarn));
+            SendEarnAffiliate affiliate =
+                new SendEarnAffiliate{salt: salt}(referrer, address(this), address(_defaultSendEarn));
             emit Events.NewAffiliate(referrer, address(affiliate));
             sendEarn = _createSendEarn(address(affiliate), salt);
             affiliates[referrer] = address(sendEarn);
@@ -127,16 +128,7 @@ contract SendEarnFactory is ISendEarnFactory, Ownable2Step {
         isSendEarn[address(sendEarn)] = true;
 
         emit Events.CreateSendEarn(
-            address(sendEarn),
-            msg.sender,
-            owner(),
-            META_MORPHO(),
-            _META_MORPHO.asset(),
-            string.concat("Send Earn: ", _META_MORPHO.name()),
-            string.concat("se", _META_MORPHO.symbol()),
-            feeRecipient,
-            platform,
-            salt
+            address(sendEarn), msg.sender, owner(), META_MORPHO(), feeRecipient, platform, fee, salt
         );
     }
 

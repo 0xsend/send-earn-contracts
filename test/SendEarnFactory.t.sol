@@ -4,6 +4,7 @@ pragma solidity 0.8.21;
 import "./helpers/SendEarn.t.sol";
 import {ISendEarn} from "../src/interfaces/ISendEarn.sol";
 import {SendEarnFactory} from "../src/SendEarnFactory.sol";
+import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
 import {Constants} from "../src/lib/Constants.sol";
@@ -28,8 +29,10 @@ contract SendEarnFactoryTest is SendEarnTest {
         if (factory.SEND_EARN() == address(0)) {
             revert Errors.ZeroAddress();
         }
+
         assertEq(factory.isSendEarn(address(factory.SEND_EARN())), true, "isSendEarn");
         assertEq(factory.affiliates(address(0)), address(factory.SEND_EARN()), "affiliates");
+
         ISendEarn sendEarn = ISendEarn(factory.SEND_EARN());
         assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
         assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
@@ -41,32 +44,65 @@ contract SendEarnFactoryTest is SendEarnTest {
     function testCreateSendEarnWithReferrer(address referrer, bytes32 salt) public {
         vm.assume(referrer != address(0));
 
-        // TODO: fix
-        // vm.expectEmit(address(factory));
-        // emit Events.NewAffiliate(referrer, address(factory.SEND_EARN()));
-        // emit Events.CreateSendEarn(
-        //     address(sendEarn),
-        //     SEND_OWNER,
-        //     address(vault),
-        //     vault.asset(),
-        //     string.concat("Send Earn: ", vault.name()),
-        //     string.concat("se", vault.symbol()),
-        //     SEND_PLATFORM,
-        //     SEND_PLATFORM,
-        //     uint96(FEE),
-        //     salt
-        // );
+        bytes32 affiliateInitCodeHash = hashInitCode(
+            type(SendEarnAffiliate).creationCode, abi.encode(referrer, address(factory), address(factory.SEND_EARN()))
+        );
+        address affiliateExpectedAddress = computeCreate2Address(salt, affiliateInitCodeHash, address(factory));
 
+        bytes32 sendEarnInitCodeHash = hashInitCode(
+            type(SendEarn).creationCode,
+            abi.encode(
+                SEND_OWNER,
+                address(vault),
+                address(loanToken),
+                string.concat("Send Earn: ", vault.name()),
+                string.concat("se", vault.symbol()),
+                affiliateExpectedAddress,
+                SEND_PLATFORM,
+                FEE
+            )
+        );
+        address sendEarnExpectedAddress = computeCreate2Address(salt, sendEarnInitCodeHash, address(factory));
+
+        vm.expectEmit(address(factory));
+        emit Events.NewAffiliate(referrer, affiliateExpectedAddress);
+        emit Events.CreateSendEarn(
+            sendEarnExpectedAddress,
+            address(this),
+            SEND_OWNER,
+            address(vault),
+            affiliateExpectedAddress,
+            SEND_PLATFORM,
+            FEE,
+            salt
+        );
         ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
+
+        assertEq(sendEarnExpectedAddress, address(sendEarn), "computeCreate2Address");
 
         assertEq(factory.isSendEarn(address(sendEarn)), true, "isSendEarn");
         assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
-        ISendEarn sendEarn2 = ISendEarn(factory.SEND_EARN());
-        assertEq(sendEarn2.owner(), SEND_OWNER, "SEND_EARN owner");
-        assertEq(address(sendEarn2.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
-        assertEq(sendEarn2.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
-        assertEq(sendEarn2.collections(), SEND_PLATFORM, "SEND_EARN collections");
-        assertEq(sendEarn2.fee(), FEE, "SEND_EARN fee");
+
+        assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
+        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(sendEarn.feeRecipient(), affiliateExpectedAddress, "SEND_EARN feeRecipient");
+        assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
+        assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
+    }
+
+    function testCreateSendEarnWithoutReferrer(bytes32 salt) public {
+        vm.recordLogs();
+        ISendEarn sendEarn = factory.createSendEarn(address(0), salt);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        assertEq(entries.length, 0, "no events");
+
+        assertEq(address(sendEarn), address(factory.SEND_EARN()), "factory.SEND_EARN");
+        assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
+        assertEq(address(sendEarn.META_MORPHO()), address(vault), "SEND_EARN metamorpho");
+        assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
+        assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
+        assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
     }
 
     function testFactoryAddressZero() public {

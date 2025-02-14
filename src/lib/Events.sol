@@ -40,20 +40,18 @@ library Events {
     /// @param caller The caller of the function.
     /// @param metaMorpho The address of the MetaMorpho contract.
     /// @param initialOwner The initial owner of the SendEarn vault.
-    /// @param asset The address of the underlying asset.
-    /// @param name The name of the SendEarn vault.
-    /// @param symbol The symbol of the SendEarn vault.
+    /// @param feeRecipient The address of the fee recipient.
+    /// @param collections The address of the collections.
+    /// @param fee The fee.
     /// @param salt The salt used for the SendEarn vault's CREATE2 address.
     event CreateSendEarn(
         address indexed sendEarn,
         address indexed caller,
         address initialOwner,
-        address metaMorpho,
-        address indexed asset,
-        string name,
-        string symbol,
+        address indexed metaMorpho,
         address feeRecipient,
         address collections,
+        uint96 fee,
         bytes32 salt
     );
     /// @notice Emitted when the split is set to `newSplit`.

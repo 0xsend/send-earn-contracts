@@ -60,6 +60,13 @@ contract FeesTest is SendEarnTest {
         assertEq(sevault.feeRecipient(), feeRecipient, "feeRecipient");
     }
 
+    function testAccrueFee() public {
+        vm.expectEmit(address(sevault));
+        emit Events.AccrueInterest(sevault.totalAssets(), 0);
+        emit Events.UpdateLastTotalAssets(0);
+        sevault.accrueFee();
+    }
+
     function _feeShares() internal view returns (uint256) {
         uint256 totalAssetsAfter = sevault.totalAssets();
         uint256 interest = totalAssetsAfter - sevault.lastTotalAssets();
