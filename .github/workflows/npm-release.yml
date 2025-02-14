@@ -29,4 +29,4 @@ jobs:
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          yarn publish . --access public --ignore-scripts
+          bunx changeset publish
