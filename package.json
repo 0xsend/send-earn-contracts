@@ -32,10 +32,12 @@
     "test:coverage": "bun build:blue && forge coverage --report lcov",
     "test:snapshot": "bun build:blue && forge snapshot",
     "test:update": "bun run test:coverage && bun run test:snapshot",
-    "lint": "bun run lint:forge",
+    "lint": "bun run lint:forge && bun run lint:solhint",
     "lint:forge": "forge fmt --check",
+    "lint:solhint": "solhint './src/**/*.sol' './test/**/*.sol' 'script/**/*.sol'",
     "lint:fix": "bun run lint:forge:fix",
     "lint:forge:fix": "forge fmt",
+    "lint:solhint:fix": "bun run lint:solhint --fix",
     "clean": "forge clean",
     "release": "bun run build && changeset publish"
   },
