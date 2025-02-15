@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
-import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
+import {Utils} from "./lib/Utils.sol";
 import {ERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {
@@ -31,7 +31,7 @@ uint256 constant WAD = 1e18;
 contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, IFeeConfig {
     using Math for uint256;
     using SafeERC20 for IERC20;
-    using UtilsLib for uint256;
+    using Utils for uint256;
 
     /* IMMUTABLES */
 
@@ -251,7 +251,7 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
         assets = _convertToAssetsWithTotals(balanceOf(owner), newTotalSupply, newTotalAssets, Math.Rounding.Floor);
 
         // can never withdraw more than the underlying vault can withdraw
-        assets = UtilsLib.min(assets, VAULT.maxWithdraw(address(this)));
+        assets = Utils.min(assets, VAULT.maxWithdraw(address(this)));
     }
 
     /// @dev Returns the maximum amount of assets that the vault can supply on the underlying vault.

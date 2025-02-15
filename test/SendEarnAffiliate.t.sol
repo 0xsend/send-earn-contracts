@@ -6,7 +6,6 @@ import {Errors} from "../src/lib/Errors.sol";
 import {Constants} from "../src/lib/Constants.sol";
 import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
 import {IPartnerSplitConfig} from "../src/interfaces/ISendEarnAffiliate.sol";
-import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
 
 import {SendEarnTest, Math, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
@@ -14,7 +13,6 @@ import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ER
 
 contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
     using Math for uint256;
-    using UtilsLib for uint256;
 
     address internal PLATFORM = makeAddr("Platform");
     address internal AFFILIATE = makeAddr("Affiliate");
