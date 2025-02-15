@@ -2,10 +2,6 @@
 pragma solidity 0.8.21;
 
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
-import {WAD} from "morpho-blue/libraries/MathLib.sol";
-import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
-import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
-import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {ERC20Permit} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {
@@ -18,7 +14,7 @@ import {
 } from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable2Step, Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
 import {Multicall} from "../lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {Events} from "./lib/Events.sol";
 import {Errors} from "./lib/Errors.sol";
@@ -26,6 +22,8 @@ import {Constants} from "./lib/Constants.sol";
 import {ISendEarnBase} from "./interfaces/ISendEarn.sol";
 import {IFeeConfig} from "./interfaces/IFeeConfig.sol";
 import {Platform} from "./Platform.sol";
+
+uint256 constant WAD = 1e18;
 
 /// @title SendEarn
 /// @author Send Squad

@@ -9,7 +9,7 @@ import {IPartnerSplitConfig} from "../src/interfaces/ISendEarnAffiliate.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
 
-import {SendEarnTest, Math, ERC20Mock, BLOCK_TIME, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
+import {SendEarnTest, Math, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
 import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 
 contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {

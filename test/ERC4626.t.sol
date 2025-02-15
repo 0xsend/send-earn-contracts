@@ -148,11 +148,12 @@ contract ERC4626Test is SendEarnTest, IMorphoFlashLoanCallback {
         sevault.deposit(deposited, ONBEHALF);
         vm.stopPrank();
 
-        vm.prank(SUPPLIER);
+        vm.startPrank(SUPPLIER);
         vm.expectRevert(
             abi.encodeWithSelector(IERC20Errors.ERC20InsufficientBalance.selector, SUPPLIER, shares, shares + 1)
         );
         sevault.redeem(shares + 1, RECEIVER, SUPPLIER);
+        vm.stopPrank();
     }
 
     function testWithdrawAll(uint256 assets) public {

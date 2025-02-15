@@ -42,4 +42,6 @@ interface ISendEarnBase {
 /// @title ISendEarn
 /// @author Send Squad
 /// @notice ERC4626 vault interface allowing users to deposit assets to earn yield through an underlying vault
-interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall, IFeeConfig {}
+interface ISendEarn is ISendEarnBase, IERC4626, IERC20Permit, IOwnable, IMulticall, IFeeConfig {
+// solhint-disable-previous-line no-empty-blocks
+}

@@ -5,26 +5,18 @@ import "forge-std/Test.sol";
 
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
-import {Platform, IPlatform} from "../src/Platform.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {IOwnable} from "../src/interfaces/IOwnable.sol";
-
-contract MockPlatform is Platform {
-    constructor(address initialPlatform, address initialOwner) Platform(initialPlatform) Ownable(initialOwner) {}
-
-    function platformFunction() external onlyPlatform {}
-    function ownerFunction() external onlyOwner {}
-}
+import {PlatformMock} from "./mocks/PlatformMock.sol";
 
 contract PlatformTest is Test {
     address internal PLATFORM = makeAddr("Platform");
     address internal OWNER = makeAddr("Owner");
     address internal OTHER = makeAddr("Other");
 
-    MockPlatform internal platform;
+    PlatformMock internal platform;
 
     function setUp() public {
-        platform = new MockPlatform(PLATFORM, OWNER);
+        platform = new PlatformMock(PLATFORM, OWNER);
     }
 
     function testSetup() public view {
@@ -57,10 +49,14 @@ contract PlatformTest is Test {
     }
 
     function testTransferOwnership(address newOwner) public {
+        vm.assume(newOwner != address(0));
+        vm.assume(newOwner != OWNER);
+
+        vm.startPrank(PLATFORM);
         vm.expectEmit(address(platform));
         emit Events.OwnershipTransferStarted(OWNER, newOwner);
-        vm.prank(PLATFORM);
         platform.transferOwnership(newOwner);
+        vm.stopPrank();
 
         assertEq(platform.pendingOwner(), newOwner, "pendingOwner");
 
@@ -69,11 +65,6 @@ contract PlatformTest is Test {
 
         assertEq(platform.owner(), newOwner, "owner");
         assertEq(platform.pendingOwner(), address(0), "pendingOwner");
-    }
-
-    function testTransferOwnershipZeroAddress() public {
-        vm.startPrank(PLATFORM);
-        platform.transferOwnership(address(0));
     }
 
     function testTransferOwnershipUnauthorized() public {

@@ -7,7 +7,6 @@ import {Constants} from "./lib/Constants.sol";
 import {ISendEarnAffiliate, IPartnerSplitConfig} from "./interfaces/ISendEarnAffiliate.sol";
 import {IERC20, IERC4626, Math, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
-import {ISendEarn} from "./interfaces/ISendEarn.sol";
 
 /// @notice Affiliate contract for splitting earnings between platform and an affiliate.
 contract SendEarnAffiliate is ISendEarnAffiliate {

@@ -1,6 +1,6 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.0-20250214211848",
+  "version": "0.0.0",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
   "repository": {
@@ -40,6 +40,7 @@
     "release": "bun run build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.12"
+    "@changesets/cli": "^2.27.12",
+    "solhint": "^5.0.5"
   }
 }

@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.0
+
+### Patch Changes
+
+- Chore and address solhint warnings
+
 ## 0.0.0-20250214211848
 
 ### Patch Changes

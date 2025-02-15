@@ -8,14 +8,13 @@ import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
 import {Constants} from "../src/lib/Constants.sol";
-import {Create2} from "openzeppelin-contracts/utils/Create2.sol";
 
 uint96 constant FEE = 0.08 ether; // 8%
 uint256 constant SPLIT = 0.75 ether; // 75%
 bytes32 constant SALT = bytes32(uint256(1));
 
 contract SendEarnFactoryTest is SendEarnTest {
-    SendEarnFactory factory;
+    SendEarnFactory internal factory;
 
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
 
