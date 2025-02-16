@@ -3,6 +3,8 @@ src = "src"
 out = "artifacts"
 libs = ["lib"]
 fs_permissions = [{ access = "read", path = "./lib/morpho-blue/out/" }]
+optimizer = true
+optimizer_runs = 200
 
 [profile.default.fuzz]
 runs = 1000
