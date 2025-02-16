@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.1
+
+### Patch Changes
+
+- Add DeploySendEarnScript
+
 ## 0.0.0
 
 ### Patch Changes
