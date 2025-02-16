@@ -15,9 +15,10 @@ contract DeploySendEarnScript is Script {
         address platform = vm.envAddress("PLATFORM");
         uint96 fee = uint96(vm.envUint("FEE"));
         uint256 split = vm.envUint("SPLIT");
+        bytes32 salt = vm.envBytes32("SALT");
 
         vm.startBroadcast();
-        SendEarnFactory factory = new SendEarnFactory(owner, vault, platform, fee, split, keccak256("SEND IT"));
+        SendEarnFactory factory = new SendEarnFactory{salt: salt}(owner, vault, platform, fee, split, salt);
         vm.stopBroadcast();
 
         console2.log("SendEarnFactory deployed to:", address(factory));
