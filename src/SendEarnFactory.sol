@@ -34,6 +34,9 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     /// @inheritdoc ISendEarnFactory
     mapping(address => address) public affiliates;
 
+    /// @inheritdoc ISendEarnFactory
+    mapping(address => address) public deposits;
+
     /// @inheritdoc IFeeConfig
     uint96 public override fee;
 
@@ -49,6 +52,8 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
         Ownable(owner)
     {
         if (vault == address(0)) revert Errors.ZeroAddress();
+        if (_platform == address(0)) revert Errors.ZeroAddress();
+        if (owner == address(0)) revert Errors.ZeroAddress();
 
         _vault = IERC4626(vault);
         _setFee(_fee);
@@ -56,7 +61,6 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
 
         // create the default(no affiliate) send earn contract
         ISendEarn sendEarn = _createSendEarn(platform(), salt);
-        isSendEarn[address(sendEarn)] = true;
         affiliates[address(0)] = address(sendEarn);
         _defaultSendEarn = sendEarn;
     }
@@ -88,14 +92,31 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     /// @inheritdoc ISendEarnFactory
     function createSendEarn(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
         if (affiliates[referrer] == address(0)) {
-            SendEarnAffiliate affiliate =
-                new SendEarnAffiliate{salt: salt}(referrer, address(this), address(_defaultSendEarn));
+            // Use deposit vault of referrer as the pay vault if it exists
+            // otherwise affiliate will receive the default vault shares
+            address payVault = deposits[referrer] != address(0) ? deposits[referrer] : address(_defaultSendEarn);
+
+            // Create new affiliate vault
+            SendEarnAffiliate affiliate = new SendEarnAffiliate{salt: salt}(referrer, address(this), payVault);
             emit Events.NewAffiliate(referrer, address(affiliate));
             sendEarn = _createSendEarn(address(affiliate), salt);
             affiliates[referrer] = address(sendEarn);
         } else {
+            // Use existing affiliate vault
             sendEarn = ISendEarn(affiliates[referrer]);
         }
+    }
+
+    /// @inheritdoc ISendEarnFactory
+    function setDeposit(address vault) public {
+        _setDeposit(msg.sender, vault);
+    }
+
+    /// @inheritdoc ISendEarnFactory
+    function createSendEarnAndSetDeposit(address referrer, bytes32 salt) external {
+        if (deposits[_msgSender()] != address(0)) revert Errors.AlreadySet();
+        ISendEarn sendEarn = _createSendEarn(referrer, salt);
+        setDeposit(address(sendEarn));
     }
 
     /* INTERNAL */
@@ -125,9 +146,7 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     function _setFee(uint256 newFee) internal {
         if (newFee == fee) revert Errors.AlreadySet();
         if (newFee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
-        if (newFee != 0 && platform() == address(0)) {
-            revert Errors.ZeroFeeRecipient();
-        }
+        if (newFee != 0 && platform() == address(0)) revert Errors.ZeroFeeRecipient();
 
         // Safe "unchecked" cast because newFee <= MAX_FEE.
         fee = uint96(newFee);
@@ -142,5 +161,12 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
         split = newSplit;
 
         emit Events.SetSplit(newSplit);
+    }
+
+    function _setDeposit(address depositor, address vault) internal {
+        if (!isSendEarn[vault]) revert Errors.NotSendEarnVault();
+        if (deposits[depositor] == vault) revert Errors.AlreadySet();
+        deposits[depositor] = vault;
+        emit Events.SetDeposit(vault);
     }
 }

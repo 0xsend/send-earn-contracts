@@ -23,15 +23,12 @@ contract SendEarnFactoryTest is SendEarnTest {
     function setUp() public override {
         super.setUp();
         factory = new SendEarnFactory(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT);
+        sevault = SendEarn(factory.SEND_EARN());
     }
 
     function testDefaultSendEarnIsCreated() public {
-        if (factory.affiliates(address(0)) == address(0)) {
-            revert Errors.ZeroAddress();
-        }
-        if (factory.SEND_EARN() == address(0)) {
-            revert Errors.ZeroAddress();
-        }
+        if (factory.affiliates(address(0)) == address(0)) revert Errors.ZeroAddress();
+        if (factory.SEND_EARN() == address(0)) revert Errors.ZeroAddress();
 
         assertEq(factory.isSendEarn(address(factory.SEND_EARN())), true, "isSendEarn");
         assertEq(factory.affiliates(address(0)), address(factory.SEND_EARN()), "affiliates");
@@ -45,6 +42,56 @@ contract SendEarnFactoryTest is SendEarnTest {
     }
 
     function testCreateSendEarnWithReferrer(address referrer, bytes32 salt) public {
+        vm.assume(referrer != address(0));
+
+        bytes32 affiliateInitCodeHash = hashInitCode(
+            type(SendEarnAffiliate).creationCode, abi.encode(referrer, address(factory), address(factory.SEND_EARN()))
+        );
+        address affiliateExpectedAddress = computeCreate2Address(salt, affiliateInitCodeHash, address(factory));
+
+        bytes32 sendEarnInitCodeHash = hashInitCode(
+            type(SendEarn).creationCode,
+            abi.encode(
+                SEND_PLATFORM,
+                SEND_OWNER,
+                address(vault),
+                address(loanToken),
+                string.concat("Send Earn: ", vault.name()),
+                string.concat("se", vault.symbol()),
+                affiliateExpectedAddress,
+                SEND_PLATFORM,
+                FEE
+            )
+        );
+        address sendEarnExpectedAddress = computeCreate2Address(salt, sendEarnInitCodeHash, address(factory));
+
+        vm.expectEmit(address(factory));
+        emit Events.NewAffiliate(referrer, affiliateExpectedAddress);
+        emit Events.CreateSendEarn(
+            sendEarnExpectedAddress,
+            address(this),
+            SEND_OWNER,
+            address(vault),
+            affiliateExpectedAddress,
+            SEND_PLATFORM,
+            FEE,
+            salt
+        );
+        ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
+
+        assertEq(sendEarnExpectedAddress, address(sendEarn), "computeCreate2Address");
+
+        assertEq(factory.isSendEarn(address(sendEarn)), true, "isSendEarn");
+        assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
+
+        assertEq(sendEarn.owner(), SEND_OWNER, "SEND_EARN owner");
+        assertEq(address(sendEarn.VAULT()), address(vault), "SEND_EARN VAULT");
+        assertEq(sendEarn.feeRecipient(), affiliateExpectedAddress, "SEND_EARN feeRecipient");
+        assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
+        assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
+    }
+
+    function testCreateSendEarnWithReferrerMultiLevel(address referrer, bytes32 salt) public {
         vm.assume(referrer != address(0));
 
         bytes32 affiliateInitCodeHash = hashInitCode(
@@ -206,5 +253,84 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.startPrank(OWNER);
         vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, OWNER));
         factory.acceptOwnership();
+    }
+
+    function testSetDeposit(address referrer, address referred, bytes32 salt) public {
+        vm.assume(referrer != address(0));
+        vm.assume(referrer != SEND_PLATFORM);
+        vm.assume(referred != address(0));
+        vm.assume(referred != SEND_PLATFORM);
+        vm.assume(referred != referrer);
+
+        // create referrer vault for referred to deposit into
+        vm.prank(referred);
+        factory.createSendEarnAndSetDeposit(referrer, salt);
+
+        // Test setting deposit for referred back to default vault
+        vm.startPrank(referred);
+        vm.expectEmit(address(factory));
+        emit Events.SetDeposit(address(sevault));
+        factory.setDeposit(address(sevault));
+        vm.stopPrank();
+
+        assertEq(factory.deposits(referred), address(sevault), "deposits(referred)");
+    }
+
+    function testSetDepositRevertNotSendEarnVault(address user, address invalidVault) public {
+        vm.assume(user != address(0));
+        vm.assume(!factory.isSendEarn(invalidVault));
+
+        vm.prank(user);
+        vm.expectRevert(Errors.NotSendEarnVault.selector);
+        factory.setDeposit(invalidVault);
+    }
+
+    function testSetDepositRevertAlreadySet(address user, bytes32 salt) public {
+        vm.assume(user != address(0));
+        vm.assume(user != SEND_PLATFORM);
+
+        // Create a SendEarn vault and set it as deposit
+        ISendEarn sendEarn = factory.createSendEarn(user, salt);
+        vm.prank(user);
+        factory.setDeposit(address(sendEarn));
+
+        // Try setting same vault again
+        vm.prank(user);
+        vm.expectRevert(Errors.AlreadySet.selector);
+        factory.setDeposit(address(sendEarn));
+    }
+
+    function testCreateSendEarnWithReferrerDeposit(address referrer, bytes32 salt) public {
+        vm.assume(referrer != address(0));
+
+        // Create a SendEarn vault and set it as referrer's deposit
+        ISendEarn depositVault = factory.createSendEarn(makeAddr("other"), salt);
+        vm.prank(referrer);
+        factory.setDeposit(address(depositVault));
+
+        // Create new SendEarn with referrer
+        bytes32 newSalt = keccak256(abi.encodePacked(salt));
+        ISendEarn sendEarn = factory.createSendEarn(referrer, newSalt);
+
+        // Get the affiliate contract
+        address affiliate = sendEarn.feeRecipient();
+        SendEarnAffiliate affiliateContract = SendEarnAffiliate(affiliate);
+
+        // Verify affiliate was created with correct pay vault
+        assertEq(address(affiliateContract.payVault()), address(depositVault), "incorrect pay vault");
+    }
+
+    function testCreateSendEarnWithReferrerNoDeposit(address referrer, bytes32 salt) public {
+        vm.assume(referrer != address(0));
+        vm.assume(factory.deposits(referrer) == address(0));
+
+        ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
+
+        // Get the affiliate contract
+        address affiliate = sendEarn.feeRecipient();
+        SendEarnAffiliate affiliateContract = SendEarnAffiliate(affiliate);
+
+        // Verify affiliate was created with default pay vault
+        assertEq(address(affiliateContract.payVault()), address(factory.SEND_EARN()), "incorrect pay vault");
     }
 }

@@ -22,6 +22,8 @@ library Events {
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     /// @notice Emitted when the platform address is set to `newPlatform`.
     event SetPlatform(address indexed newPlatform);
+    /// @notice Emitted when the SendEarn deposit address is set to `newDeposit` for sender.
+    event SetDeposit(address indexed newDeposit);
     /// @notice Emitted when the affiliate pays out the earnings.
     /// @param caller The caller of the function.
     /// @param vault The address of the vault where the earnings came from.
