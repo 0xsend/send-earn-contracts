@@ -1,9 +1,9 @@
 # Send Earn Affiliates
 
-Send Earn's affiliate program allows users to earn a share of interest fees by referring others. **IMPORTANT: Fees are ONLY taken from generated interest - never from the initial deposit amount. Your principal is always safe.**
+Send Earn's affiliate program allows users to earn a share of interest fees by referring others. **IMPORTANT: Fees are ONLY taken from generated interest - never from the initial deposit amount. Your principal is always safe.** When a user deposits into a Send Earn vault, the vault mints shares of the vault to the user.
 
-Affiliate is synonymous with referrer in this documentation. Affiliates earn yield
-from their referrals deposits.
+> [!INFO]
+> Affiliate is synonymous with referrer in this documentation. Affiliates earn yield from their referrals deposits.
 
 ## Types of Vaults
 
@@ -144,3 +144,9 @@ graph TD
     style Platform fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
     style Alice fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
 ```
+
+### Fee Splitting
+
+The fees are collected first seUSDC shares of the vault and are minted to a fee recipient which is a Fee Splitter contract. The Fee Splitter contract is a smart contract that can be configured to split the fees between the platform and the referrer.
+
+The vault fees are first withdrawn from the vault as the underlying asset (USDC) and then deposited into a Send Earn vault onbehalf of the parties involved in the fee split using the current platform split percentage.
