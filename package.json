@@ -1,6 +1,6 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
   "repository": {
@@ -16,6 +16,7 @@
   "private": false,
   "files": [
     "artifacts",
+    "broadcast",
     "contracts",
     "docs",
     "src",

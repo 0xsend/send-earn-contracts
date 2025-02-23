@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.2
+
+### Patch Changes
+
+- Deposit address management
+
 ## 0.0.1
 
 ### Patch Changes
