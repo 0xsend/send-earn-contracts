@@ -10,6 +10,7 @@ import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
 
 import {SendEarnTest, Math, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
 import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC20Mock} from "metamorpho/mocks/ERC20Mock.sol";
 
 contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
     using Math for uint256;
@@ -149,5 +150,82 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
             address(this), address(affiliateVault), address(loanToken), amount, expectedPlatform, expectedAffiliate
         );
         affiliate.pay(affiliateVault);
+    }
+
+    function testSetPayVault() public {
+        IERC4626 newVault = new ERC4626Mock(IERC20(address(loanToken)), "new vault", "vN");
+
+        vm.prank(AFFILIATE);
+        affiliate.setPayVault(address(newVault));
+
+        assertEq(address(affiliate.payVault()), address(newVault));
+    }
+
+    function testSetPayVaultUnauthorized() public {
+        IERC4626 newVault = new ERC4626Mock(IERC20(address(loanToken)), "new vault", "vN");
+
+        vm.expectRevert(Errors.UnauthorizedAffiliate.selector);
+        affiliate.setPayVault(address(newVault));
+    }
+
+    function testSetPayVaultZeroAddress() public {
+        vm.prank(AFFILIATE);
+        vm.expectRevert(Errors.ZeroAddress.selector);
+        affiliate.setPayVault(address(0));
+    }
+
+    function testSetPayVaultSameAddress() public {
+        vm.prank(AFFILIATE);
+        vm.expectRevert(Errors.AlreadySet.selector);
+        affiliate.setPayVault(address(sevault));
+    }
+
+    function testSetPayVaultAssetMismatch() public {
+        // Create a vault with different underlying asset
+        ERC20Mock differentAsset = new ERC20Mock("Different", "DIFF");
+        IERC4626 newVault = new ERC4626Mock(IERC20(address(differentAsset)), "new vault", "vN");
+
+        vm.prank(AFFILIATE);
+        vm.expectRevert(Errors.AssetMismatch.selector);
+        affiliate.setPayVault(address(newVault));
+    }
+
+    function testPayWrongAsset() public {
+        // Create a vault with different underlying asset
+        ERC20Mock differentAsset = new ERC20Mock("Different", "DIFF");
+        IERC4626 wrongVault = new ERC4626Mock(IERC20(address(differentAsset)), "wrong", "vW");
+
+        vm.expectRevert(Errors.AssetMismatch.selector);
+        affiliate.pay(wrongVault);
+    }
+
+    function testCanSetPayVaultAndPay(uint256 amount, uint256 __split) public {
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        _split = bound(__split, 0, Constants.SPLIT_TOTAL);
+
+        IERC4626 newVault = new ERC4626Mock(IERC20(address(loanToken)), "new vault", "vN");
+
+        vm.prank(AFFILIATE);
+        affiliate.setPayVault(address(newVault));
+
+        deposit(amount);
+
+        uint256 platformSplit = amount.mulDiv(_split, Constants.SPLIT_TOTAL);
+        uint256 affiliateSplit = amount.mulDiv(Constants.SPLIT_TOTAL - _split, Constants.SPLIT_TOTAL);
+
+        vm.expectEmit(address(affiliate));
+        emit Events.AffiliatePay(
+            address(this), address(affiliateVault), address(loanToken), amount, platformSplit, affiliateSplit
+        );
+        affiliate.pay(affiliateVault);
+
+        assertEq(newVault.balanceOf(PLATFORM), platformSplit, "balanceOf(PLATFORM)");
+        assertEq(newVault.balanceOf(AFFILIATE), affiliateSplit, "balanceOf(AFFILIATE)");
+        assertApproxEqAbs(
+            newVault.balanceOf(address(affiliate)),
+            amount - platformSplit - affiliateSplit,
+            1,
+            "balanceOf(address(affiliate))"
+        );
     }
 }

@@ -21,4 +21,8 @@ library Errors {
     error AssetMismatch();
     /// @notice Thrown when the sender is not the platform
     error UnauthorizedPlatform();
+    /// @notice Thrown when the sender is not the affiliate
+    error UnauthorizedAffiliate();
+    /// @notice Thrown when the address is not a SendEarn vault
+    error NotSendEarnVault();
 }

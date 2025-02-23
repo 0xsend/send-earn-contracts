@@ -21,7 +21,7 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
     address public immutable override affiliate;
 
     /// @inheritdoc ISendEarnAffiliate
-    IERC4626 public immutable override payVault;
+    IERC4626 public override payVault;
 
     /* CONSTRUCTOR */
 
@@ -57,5 +57,25 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         payVault.deposit(affiliateSplit, affiliate);
 
         emit Events.AffiliatePay(msg.sender, address(vault), address(asset), assets, platformSplit, affiliateSplit);
+    }
+
+    /// @inheritdoc ISendEarnAffiliate
+    function setPayVault(address vault) external onlyAffiliate {
+        if (vault == address(0)) revert Errors.ZeroAddress();
+        if (vault == address(payVault)) revert Errors.AlreadySet();
+
+        IERC4626 newPayVault = IERC4626(vault);
+        if (newPayVault.asset() != payVault.asset()) revert Errors.AssetMismatch();
+
+        IERC20 asset = IERC20(payVault.asset());
+        asset.forceApprove(vault, type(uint256).max);
+
+        payVault = newPayVault;
+        emit Events.SetPayVault(vault);
+    }
+
+    modifier onlyAffiliate() {
+        if (msg.sender != affiliate) revert Errors.UnauthorizedAffiliate();
+        _;
     }
 }

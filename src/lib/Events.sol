@@ -62,4 +62,6 @@ library Events {
     /// @param affiliate The address of the affiliate.
     /// @param sea The address of the SendEarnAffiliate contract.
     event NewAffiliate(address affiliate, address sea);
+    /// @notice Emitted when the pay vault is set to `payVault`.
+    event SetPayVault(address payVault);
 }
