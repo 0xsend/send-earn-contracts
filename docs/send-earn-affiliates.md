@@ -35,12 +35,14 @@ The vault fees are first withdrawn from the vault as the underlying asset (USDC)
 
 ## How it Works
 
+What follows is a high-level overview of how Send Earn works. Use this table to at a glance understand the different actors and their roles in the Send Earn system.
+
 | Actor | Description |
 |  --- | --- |
-| <span style="color:#bbf;font-weight:Bold">User</span> | An end-user who deposits into a Send Earn vault |
-| <span style="color:#40FB50;font-weight:Bold">Platform Send Earn Vault</span> | The Send Earn vault for all users when they don't have an affiliate |
-| <span style="color:#FFFFFF;font-weight:Bold">Send Earn Revenues Multisig</span> | The multisig that receives the platform fees |
-| <span style="color:#ff99ff;font-weight:Bold">Affiliate Send Earn Vault</span> | The Send Earn vault for users who have a referrals where interest fees are split between the referrer and the platform |
+| ![ ](https://placehold.co/15x15/bbf/bbf.png) User | An end-user who deposits into a Send Earn vault |
+| ![ ](https://placehold.co/15x15/40FB50/40FB50.png) Platform Send Earn Vault | The Send Earn vault for all users when they don't have an affiliate |
+| ![ ](https://placehold.co/15x15/FFDF42/FFDF42.png) Send Earn Revenues Multisig | The multisig that receives the platform fees |
+| ![ ](https://placehold.co/15x15/ff99ff/ff99ff.png) Affiliate Send Earn Vault | The Send Earn vault for users who have a referrals where interest fees are split between the referrer and the platform |
 
 ### Send Earn Deposits
 
@@ -58,7 +60,7 @@ graph TD
     G -->|Deposited Into| H[Platform Send Earn Vault]
 
     style A fill:#bbf,stroke: #333,stroke-width:2px,color:#000
-    style F fill:#FFF,stroke: #333,stroke-width:2px,color:#000
+    style F fill:#FFDF42,stroke: #333,stroke-width:2px,color:#000
     style G fill:#bbf,stroke: #333,stroke-width:2px,color:#000
     style H fill:#40FB50,stroke: #333,stroke-width:2px,color:#000
 ```
@@ -127,7 +129,7 @@ graph TD
 
     style Bob fill:#bbf,stroke: #333,stroke-width:2px,color:#000
     style BobNewBalance fill:#bbf,stroke: #333,stroke-width:2px,color:#000
-    style Platform fill:#FFFFFF,stroke: #333,stroke-width:2px,color:#000
+    style Platform fill:#FFDF42,stroke: #333,stroke-width:2px,color:#000
     style PatformSendEarn fill:#40FB50,stroke: #333,stroke-width:2px,color:#000
     style Alice fill:#bbf,stroke: #333,stroke-width:2px,color:#000
 ```
@@ -159,6 +161,6 @@ graph TD
     style Carol fill:#bbf,stroke: #333,stroke-width:2px,color:#000
     style Bob fill:#bbf,stroke: #333,stroke-width:2px,color:#000
     style BobNewBalance fill:#bbf,stroke: #333,stroke-width:2px,color:#000
-    style Platform fill:#FFFFFF,stroke: #333,stroke-width:2px,color:#000
+    style Platform fill:#FFDF42,stroke: #333,stroke-width:2px,color:#000
     style AliceSendEarnVault fill:#f9f,stroke: #333,stroke-width:2px,color:#000
 ```
