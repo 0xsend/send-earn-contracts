@@ -26,7 +26,21 @@ Fee splits:
   - 25% goes to the referrer
 
 
+### Fee Splitting
+
+The fees are collected first seUSDC shares of the vault and are minted to a fee recipient which is a Fee Splitter contract. The Fee Splitter contract is a smart contract that can be configured to split the fees between the platform and the referrer.
+
+The vault fees are first withdrawn from the vault as the underlying asset (USDC) and then deposited into a Send Earn vault onbehalf of the parties involved in the fee split using the current platform split percentage.
+
+
 ## How it Works
+
+| Actor | Description |
+|  --- | --- |
+| <span style="color:#bbf;font-weight:Bold">User</span> | An end-user who deposits into a Send Earn vault |
+| <span style="color:#40FB50;font-weight:Bold">Platform Send Earn Vault</span> | The Send Earn vault for all users when they don't have an affiliate |
+| <span style="color:#FFFFFF;font-weight:Bold">Send Earn Revenues Multisig</span> | The multisig that receives the platform fees |
+| <span style="color:#ff99ff;font-weight:Bold">Affiliate Send Earn Vault</span> | The Send Earn vault for users who have a referrals where interest fees are split between the referrer and the platform |
 
 ### Send Earn Deposits
 
@@ -40,13 +54,13 @@ graph TD
     C -->|5-10%| E[Fee Split]
     E -->|75%| F[Platform]
     E -->|25%| G[Referrer]
-    F -->|Deposited Into| H[Send Earn Vault]
-    G -->|Deposited Into| H[Send Earn Vault]
+    F -->|Deposited Into| H[Platform Send Earn Vault]
+    G -->|Deposited Into| H[Platform Send Earn Vault]
 
-    style A fill:#90EE90,stroke: #333,stroke-width:2px,color:#000
-    style B fill:#90EE90,stroke: #333,stroke-width:2px,color:#000
-    style D fill:#90EE90,stroke: #333,stroke-width:2px,color:#000
-    style H fill:#90EE90,stroke: #333,stroke-width:2px,color:#000
+    style A fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style F fill:#FFF,stroke: #333,stroke-width:2px,color:#000
+    style G fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style H fill:#40FB50,stroke: #333,stroke-width:2px,color:#000
 ```
 
 ### Send Earn Vault Selection
@@ -86,8 +100,10 @@ graph TD
 
     Deposit -->|converts USDC to seUSDC tokens| HoldShares[User holds seUSDC tokens]
 
-    style Depositor fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style Depositor fill:#bbf,stroke:#333,stroke-width:2px,color:#000
     style HoldShares fill:#bbf,stroke:#333,stroke-width:2px,color:#000
+    style AffiliateVault fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style PlatformVault fill:#40FB50,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ### Basic Example
@@ -106,13 +122,14 @@ graph TD
     MetaMorpho -->|8% Fee| FeeSplit[Fee Split]
     FeeSplit -->|Deposits 75% on behalf of Platform| PatformSendEarn[Platform Send Earn Vault]
     FeeSplit -->|Deposits 25% on behalf of Alice| PatformSendEarn[Platform Send Earn Vault]
-    PatformSendEarn --> Platform[Platform's Balance seUSDC Increases by ¢30 ]
-    PatformSendEarn --> Alice[Alice's Balance seUSDC Increases by ¢10]
+    PatformSendEarn -->|Increases by ¢30| Platform[Platform's Balance seUSDC]
+    PatformSendEarn -->|Increases by ¢10| Alice[Alice's Balance seUSDC]
 
-    style Bob fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style BobNewBalance fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style Platform fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style Alice fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
+    style Bob fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style BobNewBalance fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style Platform fill:#FFFFFF,stroke: #333,stroke-width:2px,color:#000
+    style PatformSendEarn fill:#40FB50,stroke: #333,stroke-width:2px,color:#000
+    style Alice fill:#bbf,stroke: #333,stroke-width:2px,color:#000
 ```
 
 ### Multi-Level Example with Earnings Distribution
@@ -136,17 +153,12 @@ graph TD
     MetaMorpho -->|8% Fee| FeeSplit[Fee Split]
     FeeSplit -->|Deposits 75% on behalf of Platform| AliceSendEarnVault[Alice's Affiliate Vault]
     FeeSplit -->|Deposits 25% on behalf of Bob| AliceSendEarnVault[Alice's Affiliate Vault]
-    AliceSendEarnVault --> Platform[Platform's Balance seUSDC Increases by ¢30 ]
-    AliceSendEarnVault --> Bob[Bob's Balance seUSDC Increases by ¢10]
+    AliceSendEarnVault -->|Increases by ¢30| Platform[Platform's Balance seUSDC]
+    AliceSendEarnVault -->|Increases by ¢10| Bob[Bob's Balance seUSDC]
 
-    style Bob fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style BobNewBalance fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style Platform fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
-    style Alice fill:#AED6F1,stroke: #333,stroke-width:2px,color:#000
+    style Carol fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style Bob fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style BobNewBalance fill:#bbf,stroke: #333,stroke-width:2px,color:#000
+    style Platform fill:#FFFFFF,stroke: #333,stroke-width:2px,color:#000
+    style AliceSendEarnVault fill:#f9f,stroke: #333,stroke-width:2px,color:#000
 ```
-
-### Fee Splitting
-
-The fees are collected first seUSDC shares of the vault and are minted to a fee recipient which is a Fee Splitter contract. The Fee Splitter contract is a smart contract that can be configured to split the fees between the platform and the referrer.
-
-The vault fees are first withdrawn from the vault as the underlying asset (USDC) and then deposited into a Send Earn vault onbehalf of the parties involved in the fee split using the current platform split percentage.
