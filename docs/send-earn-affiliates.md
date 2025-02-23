@@ -111,7 +111,7 @@ graph TD
 2. Bob deposits 100 USDC into Alice's affiliate vault
 3. Bob's deposit earns 5% APY interest
 4. A small fee (8%) is taken ONLY from the earned interest
-5. The fee is split: 75% to Send Earn, 25% to Alice as Platform Send Earn shares since Alice has **no referrer**
+5. The fee is split: 75% to Platform, 25% to Alice as Platform Send Earn shares since Alice has **no referrer**
 6. Alice can withdraw her earnings anytime
 
 ```mermaid
@@ -140,7 +140,7 @@ Bob refers Carol
 1. Carol deposits 100 USDC into Bob's affiliate vault
 2. Carol's deposit generates interest
 3. Interest fees are split:
-4. 75% to Send Earn
+4. 75% to Platform
 5. 25% to Bob
 6. Bob's earnings are automatically deposited into Alice's affiliate vault
 7. This creates a chain where the fees are automatically deposited into affiliate vaults: Carol → Bob → Alice
