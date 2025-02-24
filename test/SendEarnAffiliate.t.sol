@@ -51,6 +51,12 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
 
     /* Tests */
 
+    function testSetup() public {
+        assertEq(address(affiliate.payVault()), address(sevault), "payVault");
+        assertEq(affiliate.affiliate(), AFFILIATE, "affiliate");
+        assertEq(address(affiliate.splitConfig()), address(this), "splitConfig");
+    }
+
     function testNoAffiliate() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
         new SendEarnAffiliate(address(0), address(this), address(sevault));

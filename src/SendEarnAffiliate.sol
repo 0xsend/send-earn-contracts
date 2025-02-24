@@ -31,9 +31,7 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         if (_payVault == address(0)) revert Errors.ZeroAddress();
         affiliate = _affiliate;
         splitConfig = IPartnerSplitConfig(_splitConfig);
-        payVault = IERC4626(_payVault);
-        IERC20 asset = IERC20(payVault.asset());
-        asset.forceApprove(_payVault, type(uint256).max);
+        _setPayVault(_payVault);
     }
 
     /// @inheritdoc ISendEarnAffiliate
@@ -67,15 +65,20 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         IERC4626 newPayVault = IERC4626(vault);
         if (newPayVault.asset() != payVault.asset()) revert Errors.AssetMismatch();
 
-        IERC20 asset = IERC20(payVault.asset());
-        asset.forceApprove(vault, type(uint256).max);
-
-        payVault = newPayVault;
-        emit Events.SetPayVault(vault);
+        _setPayVault(vault);
     }
 
     modifier onlyAffiliate() {
         if (msg.sender != affiliate) revert Errors.UnauthorizedAffiliate();
         _;
+    }
+
+    function _setPayVault(address newPayVault) internal {
+        payVault = IERC4626(newPayVault);
+
+        IERC20 asset = IERC20(payVault.asset());
+        asset.forceApprove(newPayVault, type(uint256).max);
+
+        emit Events.SetPayVault(newPayVault);
     }
 }
