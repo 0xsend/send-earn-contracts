@@ -39,9 +39,7 @@ abstract contract Platform is IPlatform, Ownable {
      * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
      */
     constructor(address initialPlatform) {
-        if (initialPlatform == address(0)) {
-            revert Errors.ZeroAddress();
-        }
+        if (initialPlatform == address(0)) revert Errors.ZeroAddress();
         _setPlatform(initialPlatform);
     }
 
@@ -80,9 +78,7 @@ abstract contract Platform is IPlatform, Ownable {
      */
     function acceptOwnership() public virtual {
         address sender = _msgSender();
-        if (pendingOwner() != sender) {
-            revert OwnableUnauthorizedAccount(sender);
-        }
+        if (pendingOwner() != sender) revert OwnableUnauthorizedAccount(sender);
         delete _pendingOwner;
         super._transferOwnership(sender);
     }

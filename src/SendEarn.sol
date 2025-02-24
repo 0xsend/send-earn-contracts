@@ -72,9 +72,8 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
         if (_feeRecipient != address(0)) feeRecipient = _feeRecipient;
         if (_collections != address(0)) collections = _collections;
         if (_fee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
-        if (_fee != 0 && _feeRecipient == address(0)) {
-            revert Errors.ZeroFeeRecipient();
-        }
+        if (_fee != 0 && _feeRecipient == address(0)) revert Errors.ZeroFeeRecipient();
+
         fee = _fee;
         VAULT = IERC4626(vault);
         DECIMALS_OFFSET = uint8(uint256(18).zeroFloorSub(IERC20Metadata(asset).decimals()));
@@ -88,9 +87,7 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
     function setFee(uint256 newFee) external onlyOwner {
         if (newFee == fee) revert Errors.AlreadySet();
         if (newFee > Constants.MAX_FEE) revert Errors.MaxFeeExceeded();
-        if (newFee != 0 && feeRecipient == address(0)) {
-            revert Errors.ZeroFeeRecipient();
-        }
+        if (newFee != 0 && feeRecipient == address(0)) revert Errors.ZeroFeeRecipient();
 
         // Accrue fee using the previous fee set before changing it.
         accrueFee();
@@ -345,6 +342,7 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
     /// (`newTotalAssets`).
     function _accruedFeeShares() internal view returns (uint256 feeShares, uint256 newTotalAssets) {
         newTotalAssets = totalAssets();
+
         uint256 totalInterest = newTotalAssets.zeroFloorSub(lastTotalAssets);
         if (totalInterest != 0 && fee != 0) {
             // It is acknowledged that `feeAssets` may be rounded down to 0 if `totalInterest * fee < WAD`.
