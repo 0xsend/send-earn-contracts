@@ -1,6 +1,6 @@
 # Send Earn Affiliates
 
-Send Earn's affiliate program allows users to earn a share of interest fees by referring others. **IMPORTANT: Fees are ONLY taken from generated interest - never from the initial deposit amount. Your principal is always safe.** When a user deposits into a Send Earn vault, the vault mints shares of the vault to the user.
+Send Earn's affiliate program allows users to earn a share of interest fees by referring others. **IMPORTANT: Fees are ONLY taken from generated interest - never from the initial deposit amount. The principal amount remains fully intact.** When a user deposits into a Send Earn vault, the vault mints shares of the vault to the user.
 
 > [!NOTE]
 > Affiliate is synonymous with referrer in this documentation. Affiliates earn yield from their referrals deposits.
@@ -10,7 +10,7 @@ Send Earn's affiliate program allows users to earn a share of interest fees by r
 The Send Earn platform has two kinds of vaults:
 
 - Platform Vault: This is the default vault for all users when they don't have an affiliate.
-- Affiliate Vault: This is a vault for users who have a referrals where interest fees are split between the referrer and the platform.
+- Affiliate Vault: This is a vault for users where interest fees on referral deposits are split between the referrer and the platform.
 
 ## Fee Structure
 
