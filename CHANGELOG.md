@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.3
+
+### Patch Changes
+
+- More Tests, Refactorings
+
 ## 0.0.2
 
 ### Patch Changes
