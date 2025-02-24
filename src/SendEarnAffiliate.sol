@@ -34,6 +34,8 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         _setPayVault(_payVault);
     }
 
+    /* EXTERNAL */
+
     /// @inheritdoc ISendEarnAffiliate
     function pay(IERC4626 vault) external {
         IERC20 asset = IERC20(vault.asset());
@@ -67,6 +69,8 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
 
         _setPayVault(vault);
     }
+
+    /* INTERNAL */
 
     modifier onlyAffiliate() {
         if (msg.sender != affiliate) revert Errors.UnauthorizedAffiliate();
