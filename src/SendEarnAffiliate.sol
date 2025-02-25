@@ -21,17 +21,25 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
     address public immutable override affiliate;
 
     /// @inheritdoc ISendEarnAffiliate
+    IERC4626 public immutable override platformVault;
+
+    /* STATE */
+
+    /// @inheritdoc ISendEarnAffiliate
     IERC4626 public override payVault;
 
     /* CONSTRUCTOR */
 
-    constructor(address _affiliate, address _splitConfig, address _payVault) {
+    constructor(address _affiliate, address _splitConfig, address _payVault, address _platformVault) {
         if (_affiliate == address(0)) revert Errors.ZeroAddress();
         if (_splitConfig == address(0)) revert Errors.ZeroAddress();
         if (_payVault == address(0)) revert Errors.ZeroAddress();
+        if (_platformVault == address(0)) revert Errors.ZeroAddress();
         affiliate = _affiliate;
         splitConfig = IPartnerSplitConfig(_splitConfig);
         _setPayVault(_payVault);
+        platformVault = IERC4626(_platformVault);
+        if (platformVault.asset() != payVault.asset()) revert Errors.AssetMismatch();
     }
 
     /* EXTERNAL */
@@ -53,7 +61,7 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
         uint256 affiliateSplit = assets.mulDiv(Constants.SPLIT_TOTAL - split, Constants.SPLIT_TOTAL);
 
         // transfer the split to the platform and affiliate
-        payVault.deposit(platformSplit, splitConfig.platform());
+        platformVault.deposit(platformSplit, splitConfig.platform());
         payVault.deposit(affiliateSplit, affiliate);
 
         emit Events.AffiliatePay(msg.sender, address(vault), address(asset), assets, platformSplit, affiliateSplit);

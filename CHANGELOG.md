@@ -1,5 +1,14 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.5
+
+### Patch Changes
+
+- feat: Add platformVault to SendEarnAffiliate
+
+  - Update related tests and factory code
+  - Adjust deposit logic for platform earnings
+
 ## 0.0.4
 
 ### Patch Changes

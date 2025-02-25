@@ -26,7 +26,7 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
 
     function setUp() public override {
         super.setUp();
-        affiliate = new SendEarnAffiliate(AFFILIATE, address(this), address(sevault));
+        affiliate = new SendEarnAffiliate(AFFILIATE, address(this), address(sevault), address(sevault));
         vm.prank(address(affiliate));
         loanToken.approve(address(affiliateVault), type(uint256).max);
     }
@@ -59,12 +59,12 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
 
     function testNoAffiliate() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnAffiliate(address(0), address(this), address(sevault));
+        new SendEarnAffiliate(address(0), address(this), address(sevault), address(sevault));
     }
 
     function testNoSplitConfig() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnAffiliate(AFFILIATE, address(0), address(sevault));
+        new SendEarnAffiliate(AFFILIATE, address(0), address(sevault), address(sevault));
     }
 
     function testPay(uint256 amount, uint256 __split) public {
@@ -225,13 +225,19 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
         );
         affiliate.pay(affiliateVault);
 
-        assertEq(newVault.balanceOf(PLATFORM), platformSplit, "balanceOf(PLATFORM)");
-        assertEq(newVault.balanceOf(AFFILIATE), affiliateSplit, "balanceOf(AFFILIATE)");
+        // platform split is sent to platform vault
+        assertEq(sevault.balanceOf(PLATFORM), platformSplit, "sevault.balanceOf(PLATFORM)");
+        assertEq(sevault.balanceOf(AFFILIATE), 0, "sevault.balanceOf(address(affiliate))");
+        // affiliate split is sent to affiliate vault
+        assertEq(newVault.balanceOf(PLATFORM), 0, "newVault.balanceOf(PLATFORM)");
+        assertEq(newVault.balanceOf(AFFILIATE), affiliateSplit, "newVault.balanceOf(AFFILIATE)");
+
+        // all balances are sent to the vaults
         assertApproxEqAbs(
-            newVault.balanceOf(address(affiliate)),
+            affiliateVault.balanceOf(address(affiliate)),
             amount - platformSplit - affiliateSplit,
             1,
-            "balanceOf(address(affiliate))"
+            "affiliateVault.balanceOf(address(affiliate))"
         );
     }
 }

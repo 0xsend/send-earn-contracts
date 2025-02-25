@@ -97,7 +97,8 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
             address payVault = deposits[referrer] != address(0) ? deposits[referrer] : address(_defaultSendEarn);
 
             // Create new affiliate vault
-            SendEarnAffiliate affiliate = new SendEarnAffiliate{salt: salt}(referrer, address(this), payVault);
+            SendEarnAffiliate affiliate =
+                new SendEarnAffiliate{salt: salt}(referrer, address(this), payVault, address(_defaultSendEarn));
             emit Events.NewAffiliate(referrer, address(affiliate));
             sendEarn = _createSendEarn(address(affiliate), salt);
             affiliates[referrer] = address(sendEarn);

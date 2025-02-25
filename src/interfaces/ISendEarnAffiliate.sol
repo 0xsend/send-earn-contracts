@@ -9,7 +9,9 @@ interface ISendEarnAffiliate {
     function splitConfig() external view returns (IPartnerSplitConfig);
     /// @notice The address of the affiliate receiving the earnings.
     function affiliate() external view returns (address);
-    /// @notice The address of the vault that earnings are paid to on behalf of the affiliate and platform.
+    /// @notice The address of the vault that earnings are paid to on behalf of the platform.
+    function platformVault() external view returns (IERC4626);
+    /// @notice The address of the vault that earnings are paid to on behalf of the affiliate.
     function payVault() external view returns (IERC4626);
     /// @notice Pays out the earnings to the platform and affiliate.
     function pay(IERC4626 vault) external;

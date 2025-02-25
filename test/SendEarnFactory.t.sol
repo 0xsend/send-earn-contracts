@@ -45,7 +45,8 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(referrer != address(0));
 
         bytes32 affiliateInitCodeHash = hashInitCode(
-            type(SendEarnAffiliate).creationCode, abi.encode(referrer, address(factory), address(factory.SEND_EARN()))
+            type(SendEarnAffiliate).creationCode,
+            abi.encode(referrer, address(factory), address(factory.SEND_EARN()), address(factory.SEND_EARN()))
         );
         address affiliateExpectedAddress = computeCreate2Address(salt, affiliateInitCodeHash, address(factory));
 
@@ -95,7 +96,8 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(referrer != address(0));
 
         bytes32 affiliateInitCodeHash = hashInitCode(
-            type(SendEarnAffiliate).creationCode, abi.encode(referrer, address(factory), address(factory.SEND_EARN()))
+            type(SendEarnAffiliate).creationCode,
+            abi.encode(referrer, address(factory), address(factory.SEND_EARN()), address(factory.SEND_EARN()))
         );
         address affiliateExpectedAddress = computeCreate2Address(salt, affiliateInitCodeHash, address(factory));
 
