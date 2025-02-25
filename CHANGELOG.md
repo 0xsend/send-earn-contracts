@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.4
+
+### Patch Changes
+
+- Add localnet broadcast
+
 ## 0.0.3
 
 ### Patch Changes
