@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.6
+
+### Patch Changes
+
+- Add createAndDeposit function in SendEarnFactory
+
 ## 0.0.5
 
 ### Patch Changes

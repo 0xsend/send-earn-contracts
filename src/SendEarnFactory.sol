@@ -2,7 +2,7 @@
 pragma solidity 0.8.21;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
-import {IERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
 import {ISendEarnFactory} from "./interfaces/ISendEarnFactory.sol";
 import {ISplitConfig} from "./interfaces/ISplitConfig.sol";
@@ -90,7 +90,7 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     }
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarn(address referrer, bytes32 salt) external returns (ISendEarn sendEarn) {
+    function createSendEarn(address referrer, bytes32 salt) public returns (ISendEarn sendEarn) {
         if (affiliates[referrer] == address(0)) {
             // Use deposit vault of referrer as the pay vault if it exists
             // otherwise affiliate will receive the default vault shares
@@ -114,10 +114,23 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     }
 
     /// @inheritdoc ISendEarnFactory
-    function createSendEarnAndSetDeposit(address referrer, bytes32 salt) external {
-        if (deposits[_msgSender()] != address(0)) revert Errors.AlreadySet();
-        ISendEarn sendEarn = _createSendEarn(referrer, salt);
-        setDeposit(address(sendEarn));
+    function createAndDeposit(address referrer, bytes32 salt, uint256 assets)
+        external
+        returns (ISendEarn sendEarn, uint256 shares)
+    {
+        sendEarn = createSendEarn(referrer, salt);
+
+        // Get token from asset
+        address asset = sendEarn.asset();
+
+        // Transfer assets from user to this contract
+        IERC20(asset).transferFrom(msg.sender, address(this), assets);
+
+        // Approve SendEarn to spend assets
+        IERC20(asset).approve(address(sendEarn), assets);
+
+        // Deposit assets into SendEarn
+        shares = sendEarn.deposit(assets, msg.sender);
     }
 
     /* INTERNAL */

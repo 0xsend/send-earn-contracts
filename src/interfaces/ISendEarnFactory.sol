@@ -29,12 +29,17 @@ interface ISendEarnFactory is ISplitConfig, IFeeConfig {
     /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
     function createSendEarn(address referrer, bytes32 salt) external returns (ISendEarn sendEarn);
 
-    /// @notice Creates a new SendEarn vault with a referrer and sets the referred's (or msg.sender's) deposit vault.
-    /// @param referrer The address of the referrer. Passing address(0) will use the default SendEarn vault.
-    /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
-    function createSendEarnAndSetDeposit(address referrer, bytes32 salt) external;
-
     /// @notice Sets the deposit vault for a user.
     /// @param vault The address of the vault to set. MUST be a known SendEarn vault. Use isSendEarn to check.
     function setDeposit(address vault) external;
+
+    /// @notice Creates a new SendEarn vault with a referrer and deposits assets into it.
+    /// @param referrer The address of the referrer. Passing address(0) will use the default SendEarn vault.
+    /// @param salt The salt to use for the SendEarn vault's CREATE2 address.
+    /// @param assets The amount of assets to deposit.
+    /// @return sendEarn The created SendEarn vault.
+    /// @return shares The amount of shares received from the deposit.
+    function createAndDeposit(address referrer, bytes32 salt, uint256 assets)
+        external
+        returns (ISendEarn sendEarn, uint256 shares);
 }

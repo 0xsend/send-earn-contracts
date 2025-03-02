@@ -257,7 +257,122 @@ contract SendEarnFactoryTest is SendEarnTest {
         factory.acceptOwnership();
     }
 
-    function testSetDeposit(address referrer, address referred, bytes32 salt) public {
+    function testCreateAndDeposit(address referrer, bytes32 salt, uint256 assets) public {
+        assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        vm.assume(referrer != address(0));
+        vm.assume(referrer != SEND_PLATFORM);
+
+        // Setup caller with assets
+        address user = makeAddr("user");
+        loanToken.mint(user, assets);
+
+        vm.startPrank(user);
+        loanToken.approve(address(factory), assets);
+
+        // Predict the created vault address
+        bytes32 affiliateInitCodeHash = hashInitCode(
+            type(SendEarnAffiliate).creationCode,
+            abi.encode(referrer, address(factory), address(factory.SEND_EARN()), address(factory.SEND_EARN()))
+        );
+        address affiliateExpectedAddress = computeCreate2Address(salt, affiliateInitCodeHash, address(factory));
+
+        bytes32 sendEarnInitCodeHash = hashInitCode(
+            type(SendEarn).creationCode,
+            abi.encode(
+                SEND_PLATFORM,
+                SEND_OWNER,
+                address(vault),
+                address(loanToken),
+                string.concat("Send Earn: ", vault.name()),
+                string.concat("se", vault.symbol()),
+                affiliateExpectedAddress,
+                SEND_PLATFORM,
+                FEE
+            )
+        );
+        address sendEarnExpectedAddress = computeCreate2Address(salt, sendEarnInitCodeHash, address(factory));
+
+        // Record logs to check for events
+        vm.recordLogs();
+
+        // Call createAndDeposit
+        (ISendEarn sendEarn, uint256 shares) = factory.createAndDeposit(referrer, salt, assets);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // Verify the returned vault address matches expected
+        assertEq(address(sendEarn), sendEarnExpectedAddress, "SendEarn address");
+
+        // Verify the share balance
+        assertEq(sendEarn.balanceOf(user), shares, "share balance");
+
+        // Verify deposit was successful
+        uint256 expectedShares = sendEarn.convertToShares(assets);
+        assertEq(shares, expectedShares, "expected shares");
+
+        // Verify the asset transfer
+        assertEq(loanToken.balanceOf(user), 0, "remaining asset balance");
+        assertEq(loanToken.balanceOf(address(factory)), 0, "factory asset balance");
+
+        // Verify events were emitted
+        bool foundNewAffiliateEvent = false;
+        bool foundCreateSendEarnEvent = false;
+        bool foundDepositEvent = false;
+
+        for (uint256 i = 0; i < entries.length; i++) {
+            // Check for NewAffiliate event
+            if (entries[i].topics[0] == keccak256("NewAffiliate(address,address)")) {
+                foundNewAffiliateEvent = true;
+            }
+
+            // Check for CreateSendEarn event
+            if (
+                entries[i].topics[0]
+                    == keccak256("CreateSendEarn(address,address,address,address,address,address,uint96,bytes32)")
+            ) {
+                foundCreateSendEarnEvent = true;
+            }
+
+            // Check for Deposit event from ERC4626
+            if (entries[i].topics[0] == keccak256("Deposit(address,address,uint256,uint256)")) {
+                foundDepositEvent = true;
+            }
+        }
+
+        assertTrue(foundNewAffiliateEvent, "NewAffiliate event not found");
+        assertTrue(foundCreateSendEarnEvent, "CreateSendEarn event not found");
+        assertTrue(foundDepositEvent, "Deposit event not found");
+
+        vm.stopPrank();
+    }
+
+    function testCreateAndDepositWithZeroReferrer(bytes32 salt, uint256 assets) public {
+        assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+
+        // Setup caller with assets
+        address user = makeAddr("user");
+        loanToken.mint(user, assets);
+
+        vm.startPrank(user);
+        loanToken.approve(address(factory), assets);
+
+        // Call createAndDeposit with address(0) referrer
+        (ISendEarn sendEarn, uint256 shares) = factory.createAndDeposit(address(0), salt, assets);
+
+        // Verify it's using the default SendEarn
+        assertEq(address(sendEarn), address(factory.SEND_EARN()), "default SendEarn");
+
+        // Verify the share balance
+        assertEq(sendEarn.balanceOf(user), shares, "share balance");
+
+        // Verify deposit was successful
+        uint256 expectedShares = sendEarn.convertToShares(assets);
+        assertEq(shares, expectedShares, "expected shares");
+
+        vm.stopPrank();
+    }
+
+    function testSetDeposit(address referrer, address referred, bytes32 salt, uint256 assets) public {
+        assets = bound(assets, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
         vm.assume(referrer != address(0));
         vm.assume(referrer != SEND_PLATFORM);
         vm.assume(referred != address(0));
@@ -265,8 +380,11 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(referred != referrer);
 
         // create referrer vault for referred to deposit into
-        vm.prank(referred);
-        factory.createSendEarnAndSetDeposit(referrer, salt);
+        vm.startPrank(referred);
+        loanToken.mint(referred, assets);
+        loanToken.approve(address(factory), assets);
+        factory.createAndDeposit(referrer, salt, assets);
+        vm.stopPrank();
 
         // Test setting deposit for referred back to default vault
         vm.startPrank(referred);
