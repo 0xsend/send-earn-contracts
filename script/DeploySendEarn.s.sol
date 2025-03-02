@@ -22,5 +22,6 @@ contract DeploySendEarnScript is Script {
         vm.stopBroadcast();
 
         console2.log("SendEarnFactory deployed to:", address(factory));
+        console2.log("Platform SendEarn deployed to:", address(factory.SEND_EARN()));
     }
 }
