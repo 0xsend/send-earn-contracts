@@ -1,6 +1,6 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
   "repository": {
@@ -42,10 +42,11 @@
     }
   },
   "scripts": {
-    "build": "bun run build:blue && bun run build:forge && bun run build:wagmi",
+    "build": "bun run build:blue && bun run build:forge && bun run build:wagmi && bun run build:tsc",
     "build:forge": "forge build",
     "build:blue": "bun run --cwd lib/morpho-blue/ build:forge",
     "build:wagmi": "wagmi generate",
+    "build:tsc": "tsc",
     "test": "bun run test:forge",
     "test:forge": "bun build:blue && FOUNDRY_PROFILE=test forge test",
     "test:coverage": "bun build:blue && forge coverage --report lcov",
