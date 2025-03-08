@@ -1,6 +1,6 @@
 {
   "name": "@0xsend/send-earn-contracts",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "The contracts and artifacts for Send Earn.",
   "main": "index.js",
   "repository": {
@@ -22,12 +22,30 @@
     "src",
     "LICENSE",
     "README.md",
-    "package.json"
+    "package.json",
+    "index.ts",
+    "generated.ts",
+    "dist"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./artifacts/*": {
+      "import": "./artifacts/*",
+      "default": "./artifacts/*"
+    },
+    "./broadcast/*": {
+      "import": "./broadcast/*",
+      "default": "./broadcast/*"
+    }
+  },
   "scripts": {
-    "build": "bun run build:blue && bun run build:forge",
+    "build": "bun run build:blue && bun run build:forge && bun run build:wagmi",
     "build:forge": "forge build",
     "build:blue": "bun run --cwd lib/morpho-blue/ build:forge",
+    "build:wagmi": "wagmi generate",
     "test": "bun run test:forge",
     "test:forge": "bun build:blue && FOUNDRY_PROFILE=test forge test",
     "test:coverage": "bun build:blue && forge coverage --report lcov",
@@ -44,6 +62,9 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
-    "solhint": "^5.0.5"
+    "@types/bun": "^1.2.4",
+    "@wagmi/cli": "^2.2.0",
+    "solhint": "^5.0.5",
+    "typescript": "^5.8.2"
   }
 }

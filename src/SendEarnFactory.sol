@@ -120,17 +120,16 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     {
         sendEarn = createSendEarn(referrer, salt);
 
-        // Get token from asset
-        address asset = sendEarn.asset();
-
         // Transfer assets from user to this contract
+        address asset = sendEarn.asset();
         IERC20(asset).transferFrom(msg.sender, address(this), assets);
-
-        // Approve SendEarn to spend assets
         IERC20(asset).approve(address(sendEarn), assets);
 
-        // Deposit assets into SendEarn
+        // Deposit assets into SendEarn on behalf of the user
         shares = sendEarn.deposit(assets, msg.sender);
+
+        // Track deposit for user
+        _setDeposit(msg.sender, address(sendEarn));
     }
 
     /* INTERNAL */

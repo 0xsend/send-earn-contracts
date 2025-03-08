@@ -1,5 +1,14 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.7
+
+### Patch Changes
+
+- feat: add wagmi
+
+  refactor send earn factory
+  update artifacts
+
 ## 0.0.6
 
 ### Patch Changes
