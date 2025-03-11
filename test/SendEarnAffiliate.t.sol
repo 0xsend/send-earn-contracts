@@ -11,6 +11,7 @@ import {ERC4626Mock} from "./mocks/ERC4626Mock.sol";
 import {SendEarnTest, Math, MIN_TEST_ASSETS, MAX_TEST_ASSETS} from "./helpers/SendEarn.t.sol";
 import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import {ERC20Mock} from "metamorpho/mocks/ERC20Mock.sol";
+import {MockAffiliate} from "./mocks/SendEarnAffiliateMock.sol";
 
 contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
     using Math for uint256;
@@ -44,9 +45,15 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
     /* Internal */
 
     function deposit(uint256 amount) internal {
-        loanToken.setBalance(address(affiliate), amount);
-        vm.prank(address(affiliate));
-        affiliateVault.deposit(amount, address(affiliate));
+        depositFromAddress(address(affiliate), amount);
+    }
+
+    function depositFromAddress(address from, uint256 amount) internal {
+        loanToken.setBalance(address(from), amount);
+        vm.startPrank(address(from));
+        loanToken.approve(address(affiliateVault), amount);
+        affiliateVault.deposit(amount, address(from));
+        vm.stopPrank();
     }
 
     /* Tests */
@@ -205,6 +212,105 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
         affiliate.pay(wrongVault);
     }
 
+    function testPayWithAmount(uint256 amount, uint256 __split, uint256 redeemAmount) public {
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        _split = bound(__split, 0, Constants.SPLIT_TOTAL);
+        // Ensure redeemAmount is between 1 and the full amount
+        redeemAmount = bound(redeemAmount, 1, amount);
+
+        deposit(amount);
+
+        uint256 platformSplit = redeemAmount.mulDiv(_split, Constants.SPLIT_TOTAL);
+        uint256 affiliateSplit = redeemAmount.mulDiv(Constants.SPLIT_TOTAL - _split, Constants.SPLIT_TOTAL);
+
+        vm.expectEmit(address(affiliate));
+        emit Events.AffiliatePay(
+            address(this), address(affiliateVault), address(loanToken), redeemAmount, platformSplit, affiliateSplit
+        );
+        affiliate.payWithAmount(affiliateVault, redeemAmount);
+
+        assertEq(sevault.balanceOf(PLATFORM), platformSplit, "balanceOf(PLATFORM)");
+        assertEq(sevault.balanceOf(AFFILIATE), affiliateSplit, "balanceOf(AFFILIATE)");
+
+        // Verify total transferred equals redeemAmount minus dust
+        assertLe(
+            sevault.balanceOf(PLATFORM) + sevault.balanceOf(AFFILIATE),
+            redeemAmount,
+            "Total transferred should not exceed redeemAmount"
+        );
+    }
+
+    function testPayWithAmountZeroAmount() public {
+        deposit(100 ether);
+
+        vm.expectRevert(Errors.ZeroAmount.selector);
+        affiliate.payWithAmount(affiliateVault, 0);
+    }
+
+    function testPayWithAmountWrongAsset() public {
+        // Create a vault with different underlying asset
+        ERC20Mock differentAsset = new ERC20Mock("Different", "DIFF");
+        IERC4626 wrongVault = new ERC4626Mock(IERC20(address(differentAsset)), "wrong", "vW");
+
+        vm.expectRevert(Errors.AssetMismatch.selector);
+        affiliate.payWithAmount(wrongVault, 100 ether);
+    }
+
+    function testPayWithAmountExceedingBalance(uint256 amount) public {
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        deposit(amount);
+
+        // Try to redeem more than available
+        uint256 excessAmount = affiliateVault.balanceOf(address(affiliate)) + 1;
+
+        // This should revert with an error from the ERC4626 implementation
+        // The exact error message depends on the implementation
+        vm.expectRevert();
+        affiliate.payWithAmount(affiliateVault, excessAmount);
+    }
+
+    function testPayWithAmountPartial() public {
+        uint256 amount = 100 ether;
+        _split = 0.5 ether; // 50%
+
+        deposit(amount);
+
+        // Redeem half the amount
+        uint256 redeemAmount = amount / 2;
+
+        uint256 expectedPlatform = redeemAmount.mulDiv(0.5 ether, Constants.SPLIT_TOTAL);
+        uint256 expectedAffiliate = redeemAmount.mulDiv(0.5 ether, Constants.SPLIT_TOTAL);
+
+        vm.expectEmit(address(affiliate));
+        emit Events.AffiliatePay(
+            address(this),
+            address(affiliateVault),
+            address(loanToken),
+            redeemAmount,
+            expectedPlatform,
+            expectedAffiliate
+        );
+        affiliate.payWithAmount(affiliateVault, redeemAmount);
+
+        assertEq(sevault.balanceOf(PLATFORM), expectedPlatform, "Platform should receive 50% of half");
+        assertEq(sevault.balanceOf(AFFILIATE), expectedAffiliate, "Affiliate should receive 50% of half");
+
+        // Redeem the remaining amount
+        vm.expectEmit(address(affiliate));
+        emit Events.AffiliatePay(
+            address(this),
+            address(affiliateVault),
+            address(loanToken),
+            redeemAmount,
+            expectedPlatform,
+            expectedAffiliate
+        );
+        affiliate.payWithAmount(affiliateVault, redeemAmount);
+
+        assertEq(sevault.balanceOf(PLATFORM), expectedPlatform * 2, "Platform should receive 50% of total");
+        assertEq(sevault.balanceOf(AFFILIATE), expectedAffiliate * 2, "Affiliate should receive 50% of total");
+    }
+
     function testCanSetPayVaultAndPay(uint256 amount, uint256 __split) public {
         amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
         _split = bound(__split, 0, Constants.SPLIT_TOTAL);
@@ -239,5 +345,52 @@ contract SendEarnAffiliateTest is SendEarnTest, IPartnerSplitConfig {
             1,
             "affiliateVault.balanceOf(address(affiliate))"
         );
+    }
+
+    function test_payInDos(uint256 amount, uint256 __split, uint256 attackingAmount) public {
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        _split = bound(__split, 0, Constants.SPLIT_TOTAL);
+
+        deposit(amount);
+
+        uint256 platformSplit = amount.mulDiv(_split, Constants.SPLIT_TOTAL);
+        uint256 affiliateSplit = amount.mulDiv(Constants.SPLIT_TOTAL - _split, Constants.SPLIT_TOTAL);
+
+        vm.expectEmit(address(affiliate));
+        emit Events.AffiliatePay(
+            address(this), address(affiliateVault), address(loanToken), amount, platformSplit, affiliateSplit
+        );
+        affiliate.pay(affiliateVault);
+
+        address attacker = makeAddr("Attacker");
+        attackingAmount = bound(attackingAmount, 1, amount);
+        depositFromAddress(attacker, attackingAmount);
+        vm.startPrank(attacker);
+        affiliateVault.transfer(address(affiliate), attackingAmount);
+        vm.stopPrank();
+
+        // does not revert, and attacker donated to platform & affiliate
+        affiliate.pay(affiliateVault);
+    }
+
+    function testPayCallsPayWithAmount() public {
+        // Create a mock to verify the call to payWithAmount
+        MockAffiliate mockAffiliate = new MockAffiliate(AFFILIATE, address(this), address(sevault), address(sevault));
+
+        // Create a mock vault for testing
+        ERC4626Mock mockVault = new ERC4626Mock(IERC20(address(loanToken)), "mock vault", "mV");
+
+        // Set a fixed maxRedeem value for our test
+        uint256 mockMaxRedeem = 100 ether;
+        mockAffiliate.setMockMaxRedeem(mockMaxRedeem);
+
+        // Set up the mock to expect a call with the mocked maxRedeem amount
+        mockAffiliate.expectPayWithAmount(address(mockVault), mockMaxRedeem);
+
+        // Call pay and verify it calls payWithAmount with the correct parameters
+        mockAffiliate.pay(mockVault);
+
+        // Verify the mock expectations were met
+        assertTrue(mockAffiliate.expectationsMet(), "pay should call payWithAmount with the correct parameters");
     }
 }

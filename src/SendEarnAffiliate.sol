@@ -45,11 +45,14 @@ contract SendEarnAffiliate is ISendEarnAffiliate {
     /* EXTERNAL */
 
     /// @inheritdoc ISendEarnAffiliate
-    function pay(IERC4626 vault) external {
+    function pay(IERC4626 vault) external virtual {
+        payWithAmount(vault, vault.maxRedeem(address(this)));
+    }
+
+    /// @inheritdoc ISendEarnAffiliate
+    function payWithAmount(IERC4626 vault, uint256 amount) public virtual {
         IERC20 asset = IERC20(vault.asset());
         if (address(asset) != address(payVault.asset())) revert Errors.AssetMismatch();
-        // find the amount of tokens to pay
-        uint256 amount = vault.balanceOf(address(this));
         if (amount == 0) revert Errors.ZeroAmount();
 
         // convert to the underlying asset

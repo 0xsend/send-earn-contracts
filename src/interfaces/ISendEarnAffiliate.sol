@@ -14,7 +14,11 @@ interface ISendEarnAffiliate {
     /// @notice The address of the vault that earnings are paid to on behalf of the affiliate.
     function payVault() external view returns (IERC4626);
     /// @notice Pays out the earnings to the platform and affiliate.
+    /// @dev Callable by anyone to trigger payout of earnings for ease-of-operations.
     function pay(IERC4626 vault) external;
+    /// @notice Pays out an amount of earnings to the platform and affiliate for a given vault.
+    /// @dev Callable by anyone to trigger payout of earnings for ease-of-operations.
+    function payWithAmount(IERC4626 vault, uint256 amount) external;
     /// @notice Sets the pay vault.
     function setPayVault(address vault) external;
 }

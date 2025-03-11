@@ -48,9 +48,7 @@ abstract contract Platform is IPlatform, Ownable {
     /// @notice Only the platform can call this function
     /// @inheritdoc IPlatform
     function setPlatform(address newPlatform) external onlyPlatform {
-        if (newPlatform == platform()) revert Errors.AlreadySet();
         _setPlatform(newPlatform);
-        emit Events.SetPlatform(newPlatform);
     }
 
     /**
