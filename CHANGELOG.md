@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.10
+
+### Patch Changes
+
+- feat: add zero address validation in setFeeRecipient and setCollections functions in SendEarn contract
+
 ## 0.0.9
 
 ### Patch Changes

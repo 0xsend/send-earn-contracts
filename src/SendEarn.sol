@@ -100,6 +100,7 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
 
     /// @inheritdoc ISendEarnBase
     function setFeeRecipient(address newFeeRecipient) external onlyOwner {
+        if (newFeeRecipient == address(0)) revert Errors.ZeroAddress();
         feeRecipient = newFeeRecipient;
 
         emit Events.SetFeeRecipient(newFeeRecipient);
@@ -107,6 +108,7 @@ contract SendEarn is ERC4626, ERC20Permit, Platform, ISendEarnBase, Multicall, I
 
     /// @inheritdoc ISendEarnBase
     function setCollections(address newCollections) external onlyOwner {
+        if (newCollections == address(0)) revert Errors.ZeroAddress();
         collections = newCollections;
 
         emit Events.SetCollections(newCollections);
