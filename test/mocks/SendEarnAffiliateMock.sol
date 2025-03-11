@@ -23,7 +23,9 @@ contract MockAffiliate is SendEarnAffiliate {
 
     function payWithAmount(IERC4626 vault, uint256 amount) public override {
         // Verify the parameters match what we expected
+        // solhint-disable-next-line gas-custom-errors
         require(address(vault) == expectedVault, "Unexpected vault address");
+        // solhint-disable-next-line gas-custom-errors
         require(amount == expectedAmount, "Unexpected amount");
         called = true;
 
