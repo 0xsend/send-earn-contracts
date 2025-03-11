@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.11
+
+### Patch Changes
+
+- Fix CI
+
 ## 0.0.10
 
 ### Patch Changes
