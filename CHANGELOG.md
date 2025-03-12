@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.12
+
+### Patch Changes
+
+- Deploy to localnet
+
 ## 0.0.11
 
 ### Patch Changes
