@@ -64,6 +64,12 @@ cast send $ASSET \
 
 ## Contributing
 
+Lint the code:
+
+```shell
+bun run lint:fix
+```
+
 Ensure your tests are passing before submitting a PR.
 
 ```shell
@@ -76,11 +82,6 @@ Update the snapshots and test coverage:
 bun run test:update
 ```
 
-Lint the code:
-
-```shell
-bun run lint:fix
-```
 
 Make a release:
 
