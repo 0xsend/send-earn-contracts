@@ -8,10 +8,12 @@ import {SendEarnAffiliate} from "../src/SendEarnAffiliate.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Events} from "../src/lib/Events.sol";
 import {Constants} from "../src/lib/Constants.sol";
+import {IERC20Errors} from "openzeppelin-contracts/interfaces/draft-IERC6093.sol";
 
 uint96 constant FEE = 0.08 ether; // 8%
 uint256 constant SPLIT = 0.75 ether; // 75%
 bytes32 constant SALT = bytes32(uint256(1));
+uint256 constant INITIAL_BURN_AMOUNT = 1e6; // 1 USDC (assuming 6 decimals like loanToken)
 
 contract SendEarnFactoryTest is SendEarnTest {
     SendEarnFactory internal factory;
@@ -22,11 +24,31 @@ contract SendEarnFactoryTest is SendEarnTest {
 
     function setUp() public override {
         super.setUp();
-        factory = new SendEarnFactory(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT);
+
+        // Predict factory address
+        bytes memory creationBytecode = abi.encodePacked(
+            type(SendEarnFactory).creationCode,
+            abi.encode(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT, INITIAL_BURN_AMOUNT)
+        );
+        address predictedFactoryAddress = computeCreate2Address(SALT, keccak256(creationBytecode), address(this));
+
+        // Fund the predicted factory address for the initial burn
+        loanToken.mint(predictedFactoryAddress, INITIAL_BURN_AMOUNT);
+
+        // Deploy the factory using CREATE2 via new{salt: SALT}
+        factory = new SendEarnFactory{salt: SALT}(
+            SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, SALT, INITIAL_BURN_AMOUNT
+        );
+
+        // Verify deployment address
+        assertEq(address(factory), predictedFactoryAddress, "Factory address mismatch");
+
         sevault = SendEarn(factory.SEND_EARN());
     }
 
-    function testDefaultSendEarnIsCreated() public {
+    // --- Tests for Initial Burn during Factory Deployment ---
+
+    function testDefaultSendEarnIsCreatedAndBurned() public {
         if (factory.affiliates(address(0)) == address(0)) revert Errors.ZeroAddress();
         if (factory.SEND_EARN() == address(0)) revert Errors.ZeroAddress();
 
@@ -39,7 +61,34 @@ contract SendEarnFactoryTest is SendEarnTest {
         assertEq(sendEarn.feeRecipient(), SEND_PLATFORM, "SEND_EARN feeRecipient");
         assertEq(sendEarn.collections(), SEND_PLATFORM, "SEND_EARN collections");
         assertEq(sendEarn.fee(), FEE, "SEND_EARN fee");
+
+        // Verify initial burn occurred and shares remain with factory
+        // Assuming 1:1 asset:share ratio initially
+        assertEq(sevault.totalSupply(), INITIAL_BURN_AMOUNT, "Default vault total supply after burn");
+        assertEq(sevault.balanceOf(address(factory)), INITIAL_BURN_AMOUNT, "Factory share balance after burn");
+        assertEq(loanToken.balanceOf(address(factory)), 0, "Factory asset balance after burn");
     }
+
+    function testDeployFactoryRevertInsufficientBalanceForBurn() public {
+        bytes32 salt = bytes32(uint256(12345)); // use different salt to avoid evm collision
+        // --- Predict Factory Address (CREATE2) ---
+        bytes memory creationBytecode = abi.encodePacked(
+            type(SendEarnFactory).creationCode,
+            abi.encode(SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, salt, INITIAL_BURN_AMOUNT)
+        );
+        address predictedFactoryAddress = computeCreate2Address(salt, keccak256(creationBytecode), address(this));
+        // Try deploying without funding the deployer (this contract)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector, predictedFactoryAddress, 0, INITIAL_BURN_AMOUNT
+            )
+        );
+        new SendEarnFactory{salt: salt}(
+            SEND_OWNER, address(vault), SEND_PLATFORM, FEE, SPLIT, salt, INITIAL_BURN_AMOUNT
+        );
+    }
+
+    // --- Tests for Initial Burn during Affiliate Vault Creation ---
 
     function testCreateSendEarnWithReferrer(address referrer, bytes32 salt) public {
         vm.assume(referrer != address(0));
@@ -66,6 +115,10 @@ contract SendEarnFactoryTest is SendEarnTest {
         );
         address sendEarnExpectedAddress = computeCreate2Address(salt, sendEarnInitCodeHash, address(factory));
 
+        // Fund the factory before creating the affiliate vault
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
+        uint256 factoryBalanceBefore = loanToken.balanceOf(address(factory));
+
         vm.expectEmit(address(factory));
         emit Events.NewAffiliate(referrer, affiliateExpectedAddress);
         emit Events.CreateSendEarn(
@@ -80,7 +133,14 @@ contract SendEarnFactoryTest is SendEarnTest {
         );
         ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
 
+        uint256 factoryBalanceAfter = loanToken.balanceOf(address(factory));
+
         assertEq(sendEarnExpectedAddress, address(sendEarn), "computeCreate2Address");
+
+        // Verify burn occurred for the new vault
+        assertEq(sendEarn.totalSupply(), INITIAL_BURN_AMOUNT, "New vault total supply after burn"); // Shares remain with factory
+        assertEq(sendEarn.balanceOf(address(factory)), INITIAL_BURN_AMOUNT, "Factory share balance in new vault");
+        assertEq(factoryBalanceBefore - factoryBalanceAfter, INITIAL_BURN_AMOUNT, "Factory asset balance change");
 
         assertEq(factory.isSendEarn(address(sendEarn)), true, "isSendEarn");
         assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
@@ -117,6 +177,10 @@ contract SendEarnFactoryTest is SendEarnTest {
         );
         address sendEarnExpectedAddress = computeCreate2Address(salt, sendEarnInitCodeHash, address(factory));
 
+        // Fund the factory before creating the affiliate vault
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
+        uint256 factoryBalanceBefore = loanToken.balanceOf(address(factory));
+
         vm.expectEmit(address(factory));
         emit Events.NewAffiliate(referrer, affiliateExpectedAddress);
         emit Events.CreateSendEarn(
@@ -131,7 +195,14 @@ contract SendEarnFactoryTest is SendEarnTest {
         );
         ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
 
+        uint256 factoryBalanceAfter = loanToken.balanceOf(address(factory));
+
         assertEq(sendEarnExpectedAddress, address(sendEarn), "computeCreate2Address");
+
+        // Verify burn occurred for the new vault
+        assertEq(sendEarn.totalSupply(), INITIAL_BURN_AMOUNT, "New vault total supply after burn"); // Shares remain with factory
+        assertEq(sendEarn.balanceOf(address(factory)), INITIAL_BURN_AMOUNT, "Factory share balance in new vault");
+        assertEq(factoryBalanceBefore - factoryBalanceAfter, INITIAL_BURN_AMOUNT, "Factory asset balance change");
 
         assertEq(factory.isSendEarn(address(sendEarn)), true, "isSendEarn");
         assertEq(factory.affiliates(referrer), address(sendEarn), "affiliates");
@@ -160,9 +231,30 @@ contract SendEarnFactoryTest is SendEarnTest {
 
     function testFactoryAddressZero() public {
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnFactory(SEND_OWNER, address(0), SEND_PLATFORM, FEE, SPLIT, SALT);
+        new SendEarnFactory(SEND_OWNER, address(0), SEND_PLATFORM, FEE, SPLIT, SALT, 0);
         vm.expectRevert(Errors.ZeroAddress.selector);
-        new SendEarnFactory(SEND_OWNER, address(vault), address(0), FEE, SPLIT, SALT);
+        new SendEarnFactory(SEND_OWNER, address(vault), address(0), FEE, SPLIT, SALT, 0);
+    }
+
+    // --- Tests for Setters ---
+
+    function testSetInitialBurn(uint256 newBurnAmount) public {
+        vm.assume(newBurnAmount != factory.initialBurn());
+
+        // Test setting initial burn amount
+        vm.prank(SEND_OWNER);
+        factory.setInitialBurn(newBurnAmount);
+        assertEq(factory.initialBurn(), newBurnAmount, "initialBurn");
+
+        // Test reverting if already set to the same value
+        vm.prank(SEND_OWNER);
+        vm.expectRevert(Errors.AlreadySet.selector);
+        factory.setInitialBurn(newBurnAmount);
+    }
+
+    function testSetInitialBurnRevertUnauthorized() public {
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, address(this)));
+        factory.setInitialBurn(INITIAL_BURN_AMOUNT + 1);
     }
 
     function testSetFee(uint256 newFee) public {
@@ -269,6 +361,10 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.startPrank(user);
         loanToken.approve(address(factory), assets);
 
+        // Fund the factory for the initial burn before user deposits
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
+        uint256 factoryBalanceBefore = loanToken.balanceOf(address(factory));
+
         // Predict the created vault address
         bytes32 affiliateInitCodeHash = hashInitCode(
             type(SendEarnAffiliate).creationCode,
@@ -298,16 +394,27 @@ contract SendEarnFactoryTest is SendEarnTest {
         // Call createAndDeposit
         (ISendEarn sendEarn, uint256 shares) = factory.createAndDeposit(referrer, salt, assets);
         Vm.Log[] memory entries = vm.getRecordedLogs();
+        uint256 factoryBalanceAfter = loanToken.balanceOf(address(factory));
 
         // Verify the returned vault address matches expected
         assertEq(address(sendEarn), sendEarnExpectedAddress, "SendEarn address");
 
-        // Verify the share balance
-        assertEq(sendEarn.balanceOf(user), shares, "share balance");
+        // Verify factory balance decreased due to burn
+        assertEq(factoryBalanceBefore - factoryBalanceAfter, INITIAL_BURN_AMOUNT, "Factory balance change after burn");
 
-        // Verify deposit was successful
-        uint256 expectedShares = sendEarn.convertToShares(assets);
-        assertEq(shares, expectedShares, "expected shares");
+        // Verify the share balance reflects only the user's deposit (after burn)
+        assertEq(sendEarn.balanceOf(user), shares, "share balance");
+        // Total supply includes factory's initial shares + user's shares
+        assertEq(
+            sendEarn.totalSupply(),
+            shares + INITIAL_BURN_AMOUNT,
+            "total supply equals user shares + initial burn shares"
+        );
+
+        // Verify deposit was successful based on assets deposited
+        // Note: convertToShares might be slightly off if burn affected rate, but should be close
+        uint256 expectedShares = sendEarn.previewDeposit(assets);
+        assertApproxEqAbs(shares, expectedShares, 1, "expected shares approx");
 
         // Verify the asset transfer
         assertEq(loanToken.balanceOf(user), 0, "remaining asset balance");
@@ -358,15 +465,15 @@ contract SendEarnFactoryTest is SendEarnTest {
         // Call createAndDeposit with address(0) referrer
         (ISendEarn sendEarn, uint256 shares) = factory.createAndDeposit(address(0), salt, assets);
 
-        // Verify it's using the default SendEarn
-        assertEq(address(sendEarn), address(factory.SEND_EARN()), "default SendEarn");
+        // Verify it's using the default SendEarn (which is `sevault`)
+        assertEq(address(sendEarn), address(sevault), "default SendEarn");
 
         // Verify the share balance
         assertEq(sendEarn.balanceOf(user), shares, "share balance");
 
         // Verify deposit was successful
-        uint256 expectedShares = sendEarn.convertToShares(assets);
-        assertEq(shares, expectedShares, "expected shares");
+        uint256 expectedShares = sendEarn.previewDeposit(assets);
+        assertApproxEqAbs(shares, expectedShares, 1, "expected shares approx");
 
         vm.stopPrank();
     }
@@ -380,6 +487,8 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(referred != referrer);
 
         // create referrer vault for referred to deposit into
+        // Fund factory first for the createAndDeposit call
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
         vm.startPrank(referred);
         loanToken.mint(referred, assets);
         loanToken.approve(address(factory), assets);
@@ -409,6 +518,8 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(user != address(0));
         vm.assume(user != SEND_PLATFORM);
 
+        // Fund factory before creating vault
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
         // Create a SendEarn vault and set it as deposit
         ISendEarn sendEarn = factory.createSendEarn(user, salt);
         vm.prank(user);
@@ -423,6 +534,8 @@ contract SendEarnFactoryTest is SendEarnTest {
     function testCreateSendEarnWithReferrerDeposit(address referrer, bytes32 salt) public {
         vm.assume(referrer != address(0));
 
+        // Fund factory before creating the first vault
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
         // Create a SendEarn vault and set it as referrer's deposit
         ISendEarn depositVault = factory.createSendEarn(makeAddr("other"), salt);
         vm.prank(referrer);
@@ -430,6 +543,10 @@ contract SendEarnFactoryTest is SendEarnTest {
 
         // Create new SendEarn with referrer
         bytes32 newSalt = keccak256(abi.encodePacked(salt));
+
+        // Fund factory for the burn
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
+
         ISendEarn sendEarn = factory.createSendEarn(referrer, newSalt);
 
         // Get the affiliate contract
@@ -444,6 +561,9 @@ contract SendEarnFactoryTest is SendEarnTest {
         vm.assume(referrer != address(0));
         vm.assume(factory.deposits(referrer) == address(0));
 
+        // Fund factory for the burn
+        loanToken.mint(address(factory), INITIAL_BURN_AMOUNT);
+
         ISendEarn sendEarn = factory.createSendEarn(referrer, salt);
 
         // Get the affiliate contract
@@ -452,5 +572,19 @@ contract SendEarnFactoryTest is SendEarnTest {
 
         // Verify affiliate was created with default pay vault
         assertEq(address(affiliateContract.payVault()), address(factory.SEND_EARN()), "incorrect pay vault");
+    }
+
+    function testWithdrawPrefund(address to, uint256 amount) public {
+        amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
+        vm.assume(to != address(0));
+        vm.assume(amount != 0);
+
+        // Fund the factory for the prefund
+        loanToken.mint(address(factory), amount);
+
+        vm.prank(SEND_OWNER);
+        factory.withdrawPrefund(to, amount);
+
+        assertEq(loanToken.balanceOf(to), amount, "prefund not withdrawn");
     }
 }

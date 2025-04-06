@@ -12,6 +12,9 @@ interface ISendEarnFactory is ISplitConfig, IFeeConfig {
     /// @notice The default SendEarn vault created with the factory. This vault does not have a referrer.
     function SEND_EARN() external view returns (address);
 
+    /// @notice The amount of underlying asset to deposit and burn upon vault creation.
+    function initialBurn() external view returns (uint256);
+
     /// @notice Tracks existing SendEarn contracts where the affiliate is sharing the fees.
     function affiliates(address) external view returns (address);
 
@@ -20,6 +23,9 @@ interface ISendEarnFactory is ISplitConfig, IFeeConfig {
 
     /// @notice Sets the split to the referrer.
     function setSplit(uint256 newSplit) external;
+
+    /// @notice Withdraws the burn prefund amount to the owner.
+    function withdrawPrefund(address to, uint256 amount) external;
 
     /// @notice Whether a SendEarn vault was created with the factory.
     function isSendEarn(address target) external view returns (bool);

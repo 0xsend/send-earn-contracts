@@ -3,6 +3,7 @@ pragma solidity 0.8.21;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable2Step.sol";
 import {IERC4626, IERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
+import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISendEarn} from "./interfaces/ISendEarn.sol";
 import {ISendEarnFactory} from "./interfaces/ISendEarnFactory.sol";
 import {ISplitConfig} from "./interfaces/ISplitConfig.sol";
@@ -20,6 +21,8 @@ import {SendEarnAffiliate} from "./SendEarnAffiliate.sol";
 /// @custom:contact security@send.it
 /// @notice This contract allows to create SendEarn vaults with a referrer and to index them easily.
 contract SendEarnFactory is ISendEarnFactory, Platform {
+    using SafeERC20 for IERC20;
+
     /* IMMUTABLES */
 
     IERC4626 private immutable _vault;
@@ -43,14 +46,22 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     /// @inheritdoc ISplitConfig
     uint256 public split;
 
+    /// @inheritdoc ISendEarnFactory
+    uint256 public initialBurn;
+
     /* CONSTRUCTOR */
 
     /// @dev Initializes the contract.
     /// @param vault The address of the underlying vault contract.
-    constructor(address owner, address vault, address _platform, uint96 _fee, uint256 _split, bytes32 salt)
-        Platform(_platform)
-        Ownable(owner)
-    {
+    constructor(
+        address owner,
+        address vault,
+        address _platform,
+        uint96 _fee,
+        uint256 _split,
+        bytes32 salt,
+        uint256 _initialBurn
+    ) Platform(_platform) Ownable(owner) {
         if (vault == address(0)) revert Errors.ZeroAddress();
         if (_platform == address(0)) revert Errors.ZeroAddress();
         if (owner == address(0)) revert Errors.ZeroAddress();
@@ -58,6 +69,7 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
         _vault = IERC4626(vault);
         _setFee(_fee);
         _setSplit(_split);
+        _setInitialBurn(_initialBurn);
 
         // create the default(no affiliate) send earn contract
         ISendEarn sendEarn = _createSendEarn(platform(), salt);
@@ -67,6 +79,12 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
 
     /* OWNER ONLY */
 
+    /// @notice Sets the initial burn amount.
+    /// @param _amount The new initial burn amount.
+    function setInitialBurn(uint256 _amount) public onlyOwner {
+        _setInitialBurn(_amount);
+    }
+
     /// @inheritdoc IFeeConfig
     function setFee(uint256 newFee) public onlyOwner {
         _setFee(newFee);
@@ -75,6 +93,14 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     /// @inheritdoc ISendEarnFactory
     function setSplit(uint256 newSplit) public onlyOwner {
         _setSplit(newSplit);
+    }
+
+    /// @inheritdoc ISendEarnFactory
+    function withdrawPrefund(address to, uint256 amount) public onlyOwner {
+        if (to == address(0)) revert Errors.ZeroAddress();
+        if (amount == 0) revert Errors.ZeroAmount();
+
+        IERC20(_vault.asset()).safeTransfer(to, amount);
     }
 
     /* EXTERNAL */
@@ -122,8 +148,9 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
 
         // Transfer assets from user to this contract
         address asset = sendEarn.asset();
-        IERC20(asset).transferFrom(msg.sender, address(this), assets);
-        IERC20(asset).approve(address(sendEarn), assets);
+        IERC20 assetToken = IERC20(asset);
+        assetToken.safeTransferFrom(msg.sender, address(this), assets);
+        assetToken.forceApprove(address(sendEarn), assets);
 
         // Deposit assets into SendEarn on behalf of the user
         shares = sendEarn.deposit(assets, msg.sender);
@@ -135,6 +162,7 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
     /* INTERNAL */
 
     function _createSendEarn(address feeRecipient, bytes32 salt) internal returns (ISendEarn sendEarn) {
+        // Create and return the SendEarn vault instance
         sendEarn = ISendEarn(
             address(
                 new SendEarn{salt: salt}(
@@ -152,6 +180,24 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
         );
 
         isSendEarn[address(sendEarn)] = true;
+
+        // Perform initial deposit and burn if amount > 0
+        if (initialBurn > 0) {
+            IERC20 assetToken = IERC20(_vault.asset());
+
+            // Approve the new vault to spend the asset from the factory
+            assetToken.forceApprove(address(sendEarn), initialBurn);
+
+            // Deposit the initial amount from the factory into the new vault
+            uint256 sharesReceived = sendEarn.deposit(initialBurn, address(this));
+
+            // Ensure some shares were minted to prevent division by zero or manipulation
+            if (sharesReceived == 0) revert Errors.ZeroSharesMinted();
+
+            // The shares received from the initial deposit remain owned by the factory.
+            // This ensures the vault's total supply is non-zero, mitigating the inflation attack,
+            // without needing to transfer to address(0) which might be disallowed by the token.
+        }
 
         emit Events.CreateSendEarn(address(sendEarn), msg.sender, owner(), VAULT(), feeRecipient, platform(), fee, salt);
     }
@@ -174,6 +220,11 @@ contract SendEarnFactory is ISendEarnFactory, Platform {
         split = newSplit;
 
         emit Events.SetSplit(newSplit);
+    }
+
+    function _setInitialBurn(uint256 _amount) internal {
+        if (_amount == initialBurn) revert Errors.AlreadySet();
+        initialBurn = _amount;
     }
 
     function _setDeposit(address depositor, address vault) internal {

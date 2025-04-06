@@ -25,4 +25,6 @@ library Errors {
     error UnauthorizedAffiliate();
     /// @notice Thrown when the address is not a SendEarn vault
     error NotSendEarnVault();
+    /// @notice Thrown when the initial deposit results in zero shares minted
+    error ZeroSharesMinted();
 }

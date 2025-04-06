@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.13
+
+### Patch Changes
+
+- Add initial burn logic on vault creation
+
 ## 0.0.12
 
 ### Patch Changes
