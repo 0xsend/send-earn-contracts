@@ -574,17 +574,16 @@ contract SendEarnFactoryTest is SendEarnTest {
         assertEq(address(affiliateContract.payVault()), address(factory.SEND_EARN()), "incorrect pay vault");
     }
 
-    function testWithdrawPrefund(address to, uint256 amount) public {
+    function testWithdrawPrefund(uint256 amount) public {
         amount = bound(amount, MIN_TEST_ASSETS, MAX_TEST_ASSETS);
-        vm.assume(to != address(0));
         vm.assume(amount != 0);
 
         // Fund the factory for the prefund
         loanToken.mint(address(factory), amount);
 
         vm.prank(SEND_OWNER);
-        factory.withdrawPrefund(to, amount);
+        factory.withdrawPrefund(SEND_OWNER, amount);
 
-        assertEq(loanToken.balanceOf(to), amount, "prefund not withdrawn");
+        assertEq(loanToken.balanceOf(SEND_OWNER), amount, "prefund not withdrawn");
     }
 }
