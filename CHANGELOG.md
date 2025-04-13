@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.0.15
+
+### Patch Changes
+
+- Update deployment configuration scripts
+
 ## 0.0.14
 
 ### Patch Changes
