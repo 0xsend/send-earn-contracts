@@ -1,5 +1,11 @@
 # @0xsend/send-earn-contracts
 
+## 0.1.0
+
+### Minor Changes
+
+- Deploy Send Earn on Base
+
 ## 0.0.15
 
 ### Patch Changes
